@@ -1,3 +1,5 @@
+include(npm)
+
 function(bare_platform result)
   set(platform ${CMAKE_SYSTEM_NAME})
 
@@ -146,17 +148,17 @@ function(add_bare_module target)
   )
 endfunction()
 
-function(include_bare_module target path)
+function(include_bare_module target specifier)
   if(NOT TARGET ${target})
-    bare_module_directory(root)
+    resolve_node_module(${specifier} resolved)
 
     add_subdirectory(
-      ${root}/${path}
-      ${path}
+      ${resolved}
+      node_modules/${specifier}
       EXCLUDE_FROM_ALL
     )
 
-    set(filename "/${path}")
+    set(filename "/node_modules/${specifier}")
 
     cmake_path(NATIVE_PATH filename NORMALIZE filename)
 
@@ -173,8 +175,8 @@ function(include_bare_module target path)
   endif()
 endfunction()
 
-function(link_bare_module receiver target path)
-  include_bare_module(${target} ${path})
+function(link_bare_module receiver target specifier)
+  include_bare_module(${target} ${specifier})
 
   target_sources(
     ${receiver}
