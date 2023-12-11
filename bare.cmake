@@ -381,20 +381,26 @@ function(find_bare result)
 endfunction()
 
 function(find_bare_dev result)
-  bare_module_directory(root)
+  resolve_node_module(bare-dev resolved)
+
+  if(NOT resolved MATCHES "NOTFOUND")
+    cmake_path(GET resolved PARENT_PATH node_modules)
+
+    list(APPEND hints ${node_modules}/.bin)
+  endif()
 
   if(WIN32)
     find_program(
       bare_dev
       NAMES bare-dev.cmd bare-dev
-      HINTS ${root}/node_modules/.bin
+      HINTS ${hints}
       REQUIRED
     )
   else()
     find_program(
       bare_dev
       NAMES bare-dev
-      HINTS ${root}/node_modules/.bin
+      HINTS ${hints}
       REQUIRED
     )
   endif()
