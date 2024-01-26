@@ -171,6 +171,7 @@ function(include_bare_module target specifier)
         BARE_MODULE_REGISTER_CONSTRUCTOR
         NAPI_MODULE_FILENAME="${filename}"
         NAPI_MODULE_REGISTER_CONSTRUCTOR
+        NODE_GYP_MODULE_NAME=${target}
     )
   endif()
 endfunction()
