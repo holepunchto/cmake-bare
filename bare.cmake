@@ -160,10 +160,6 @@ function(include_bare_module target specifier)
 
     set(filename "/node_modules/${specifier}")
 
-    cmake_path(NATIVE_PATH filename NORMALIZE filename)
-
-    string(REPLACE "\\" "\\\\" filename ${filename})
-
     target_compile_definitions(
       ${target}
       PUBLIC
@@ -218,8 +214,6 @@ function(bare_module_directory result)
 
     if(IS_DIRECTORY ${target})
       set(${result} ${dirname})
-
-      cmake_path(NATIVE_PATH ${result} NORMALIZE ${result})
 
       return(PROPAGATE ${result})
     endif()
