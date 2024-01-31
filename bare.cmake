@@ -158,16 +158,16 @@ function(include_bare_module target specifier)
       EXCLUDE_FROM_ALL
     )
 
-    set(filename "/node_modules/${specifier}")
+    string(MAKE_C_IDENTIFIER target name)
 
     target_compile_definitions(
       ${target}
       PUBLIC
-        BARE_MODULE_FILENAME="${filename}"
+        BARE_MODULE_FILENAME="${specifier}"
         BARE_MODULE_REGISTER_CONSTRUCTOR
-        NAPI_MODULE_FILENAME="${filename}"
+        NAPI_MODULE_FILENAME="${specifier}"
         NAPI_MODULE_REGISTER_CONSTRUCTOR
-        NODE_GYP_MODULE_NAME=${target}
+        NODE_GYP_MODULE_NAME=${name}
     )
   endif()
 endfunction()
