@@ -158,7 +158,7 @@ function(include_bare_module target specifier)
       EXCLUDE_FROM_ALL
     )
 
-    string(MAKE_C_IDENTIFIER target name)
+    string(MAKE_C_IDENTIFIER ${target} name)
 
     target_compile_definitions(
       ${target}
