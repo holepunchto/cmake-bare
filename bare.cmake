@@ -344,7 +344,13 @@ function(mirror_drive)
 
   execute_process(
     COMMAND ${bare_dev} drive mirror ${args}
+    OUTPUT_VARIABLE output
     WORKING_DIRECTORY ${ARGV_CWD}
+  )
+
+  message(CONFIGURE_LOG
+    "Mirrored drive ${ARGV_SOURCE} into ${ARGV_DESTINATION}\n"
+    "${output}"
   )
 endfunction()
 
