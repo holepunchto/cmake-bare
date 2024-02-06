@@ -152,6 +152,10 @@ function(include_bare_module target specifier)
   if(NOT TARGET ${target})
     resolve_node_module(${specifier} resolved)
 
+    file(READ ${resolved}/package.json package)
+
+    string(JSON version GET "${package}" "version")
+
     add_subdirectory(
       ${resolved}
       node_modules/${specifier}
@@ -163,9 +167,9 @@ function(include_bare_module target specifier)
     target_compile_definitions(
       ${target}
       PUBLIC
-        BARE_MODULE_FILENAME="${specifier}"
+        BARE_MODULE_FILENAME="${specifier}@${version}"
         BARE_MODULE_REGISTER_CONSTRUCTOR
-        NAPI_MODULE_FILENAME="${specifier}"
+        NAPI_MODULE_FILENAME="${specifier}@${version}"
         NAPI_MODULE_REGISTER_CONSTRUCTOR
         NODE_GYP_MODULE_NAME=${name}
     )
