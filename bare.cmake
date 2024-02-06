@@ -201,38 +201,9 @@ function(bare_include_directories result)
   return(PROPAGATE ${result})
 endfunction()
 
-function(bare_module_directory result)
-  set(dirname ${CMAKE_CURRENT_LIST_DIR})
-
-  cmake_path(GET dirname ROOT_PATH root)
-
-  while(TRUE)
-    cmake_path(
-      APPEND dirname node_modules
-      OUTPUT_VARIABLE target
-    )
-
-    if(IS_DIRECTORY ${target})
-      set(${result} ${dirname})
-
-      return(PROPAGATE ${result})
-    endif()
-
-    if(dirname PATH_EQUAL root)
-      break()
-    endif()
-
-    cmake_path(GET dirname PARENT_PATH dirname)
-  endwhile()
-
-  set(${result} NOTFOUND)
-
-  return(PROPAGATE ${result})
-endfunction()
-
 function(add_bare_bundle)
   cmake_parse_arguments(
-    PARSE_ARGV 0 ARGV "" "CWD;ENTRY;OUT;TARGET;IMPORT_MAP;NODE_MODULES;CONFIG" "DEPENDS"
+    PARSE_ARGV 0 ARGV "" "CWD;ENTRY;OUT;TARGET;IMPORT_MAP;CONFIG" "DEPENDS"
   )
 
   if(ARGV_CWD)
@@ -257,16 +228,6 @@ function(add_bare_bundle)
     list(APPEND args --import-map ${ARGV_IMPORT_MAP})
 
     list(APPEND ARGV_DEPENDS ${ARGV_IMPORT_MAP})
-  endif()
-
-  if(ARGV_NODE_MODULES)
-    cmake_path(ABSOLUTE_PATH ARGV_NODE_MODULES BASE_DIRECTORY ${ARGV_CWD})
-
-    list(APPEND args --node-modules ${ARGV_NODE_MODULES})
-  else()
-    bare_module_directory(root)
-
-    list(APPEND args --node-modules ${root}/node_modules)
   endif()
 
   list(APPEND args_bundle ${args})
