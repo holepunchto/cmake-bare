@@ -125,12 +125,12 @@ function(add_bare_module target)
     )
   endif()
 
-  add_library(${target}_module MODULE $<TARGET_OBJECTS:${target}>)
+  add_library(${target}_module MODULE)
 
   set_target_properties(
     ${target}_module
     PROPERTIES
-    OUTPUT_NAME addon
+    OUTPUT_NAME "addon"
     PREFIX ""
     SUFFIX ".bare"
 
@@ -141,10 +141,10 @@ function(add_bare_module target)
 
   target_link_libraries(
     ${target}_module
+    PUBLIC
+      ${target}
     PRIVATE
       ${target}_import_lib
-    PUBLIC
-      $<TARGET_PROPERTY:${target},INTERFACE_LINK_LIBRARIES>
   )
 endfunction()
 
