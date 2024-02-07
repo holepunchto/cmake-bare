@@ -223,31 +223,23 @@ endfunction()
 
 function(add_bare_bundle)
   cmake_parse_arguments(
-    PARSE_ARGV 0 ARGV "" "CWD;ENTRY;OUT;TARGET;IMPORT_MAP;CONFIG" "DEPENDS"
+    PARSE_ARGV 0 ARGV "" "WORKING_DIRECTORY;ENTRY;OUT;TARGET;CONFIG" "DEPENDS"
   )
 
-  if(ARGV_CWD)
-    cmake_path(ABSOLUTE_PATH ARGV_CWD BASE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+  if(ARGV_WORKING_DIRECTORY)
+    cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
   else()
-    set(ARGV_CWD ${CMAKE_CURRENT_LIST_DIR})
+    set(ARGV_WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
   endif()
 
-  list(APPEND args --cwd ${ARGV_CWD})
+  list(APPEND args --cwd ${ARGV_WORKING_DIRECTORY})
 
   if(ARGV_CONFIG)
-    cmake_path(ABSOLUTE_PATH ARGV_CONFIG BASE_DIRECTORY ${ARGV_CWD})
+    cmake_path(ABSOLUTE_PATH ARGV_CONFIG BASE_DIRECTORY ${ARGV_WORKING_DIRECTORY})
 
     list(APPEND args --config ${ARGV_CONFIG})
 
     list(APPEND ARGV_DEPENDS ${ARGV_CONFIG})
-  endif()
-
-  if(ARGV_IMPORT_MAP)
-    cmake_path(ABSOLUTE_PATH ARGV_IMPORT_MAP BASE_DIRECTORY ${ARGV_CWD})
-
-    list(APPEND args --import-map ${ARGV_IMPORT_MAP})
-
-    list(APPEND ARGV_DEPENDS ${ARGV_IMPORT_MAP})
   endif()
 
   list(APPEND args_bundle ${args})
@@ -258,13 +250,13 @@ function(add_bare_bundle)
     list(APPEND args_bundle --target ${ARGV_TARGET})
   endif()
 
-  cmake_path(ABSOLUTE_PATH ARGV_OUT BASE_DIRECTORY ${ARGV_CWD})
+  cmake_path(ABSOLUTE_PATH ARGV_OUT BASE_DIRECTORY ${ARGV_WORKING_DIRECTORY})
 
   list(APPEND args_bundle --out ${ARGV_OUT})
 
   list(APPEND args_dependencies --out ${ARGV_OUT}.d)
 
-  cmake_path(ABSOLUTE_PATH ARGV_ENTRY BASE_DIRECTORY ${ARGV_CWD})
+  cmake_path(ABSOLUTE_PATH ARGV_ENTRY BASE_DIRECTORY ${ARGV_WORKING_DIRECTORY})
 
   list(APPEND ARGV_DEPENDS ${ARGV_ENTRY})
 
@@ -278,7 +270,7 @@ function(add_bare_bundle)
 
   add_custom_command(
     COMMAND ${bare_dev} dependencies ${args_dependencies}
-    WORKING_DIRECTORY ${ARGV_CWD}
+    WORKING_DIRECTORY ${ARGV_WORKING_DIRECTORY}
     OUTPUT ${ARGV_OUT}.d
     DEPENDS ${ARGV_DEPENDS}
     VERBATIM
@@ -286,7 +278,7 @@ function(add_bare_bundle)
 
   add_custom_command(
     COMMAND ${bare_dev} bundle ${args_bundle}
-    WORKING_DIRECTORY ${ARGV_CWD}
+    WORKING_DIRECTORY ${ARGV_WORKING_DIRECTORY}
     OUTPUT ${ARGV_OUT}
     DEPENDS ${ARGV_OUT}.d
     DEPFILE ${ARGV_OUT}.d
