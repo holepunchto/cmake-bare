@@ -288,11 +288,11 @@ endfunction()
 
 function(mirror_drive)
   cmake_parse_arguments(
-    PARSE_ARGV 0 ARGV "" "CWD;SOURCE;DESTINATION;PREFIX;CHECKOUT" ""
+    PARSE_ARGV 0 ARGV "" "WORKING_DIRECTORY;SOURCE;DESTINATION;PREFIX;CHECKOUT" ""
   )
 
-  if(ARGV_CWD)
-    list(APPEND args --cwd ${ARGV_CWD})
+  if(ARGV_WORKING_DIRECTORY)
+    list(APPEND args --cwd ${ARGV_WORKING_DIRECTORY})
   endif()
 
   if(ARGV_PREFIX)
@@ -305,10 +305,10 @@ function(mirror_drive)
 
   list(APPEND args ${ARGV_SOURCE} ${ARGV_DESTINATION})
 
-  if(ARGV_CWD)
-    cmake_path(ABSOLUTE_PATH ARGV_CWD BASE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+  if(ARGV_WORKING_DIRECTORY)
+    cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
   else()
-    set(ARGV_CWD ${CMAKE_CURRENT_LIST_DIR})
+    set(ARGV_WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
   endif()
 
   find_bare_dev(bare_dev)
@@ -318,7 +318,7 @@ function(mirror_drive)
   execute_process(
     COMMAND ${bare_dev} drive mirror ${args}
     OUTPUT_VARIABLE output
-    WORKING_DIRECTORY ${ARGV_CWD}
+    WORKING_DIRECTORY ${ARGV_WORKING_DIRECTORY}
   )
 
   message(CONFIGURE_LOG
