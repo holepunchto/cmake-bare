@@ -223,7 +223,7 @@ endfunction()
 
 function(add_bare_bundle)
   cmake_parse_arguments(
-    PARSE_ARGV 0 ARGV "" "WORKING_DIRECTORY;ENTRY;OUT;TARGET;CONFIG" "DEPENDS"
+    PARSE_ARGV 0 ARGV "" "WORKING_DIRECTORY;ENTRY;OUT;FORMAT;TARGET;NAME;CONFIG" "DEPENDS"
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -246,8 +246,16 @@ function(add_bare_bundle)
 
   list(APPEND args_dependencies ${args})
 
+  if(ARGV_FORMAT)
+    list(APPEND args_bundle --format ${ARGV_FORMAT})
+  endif()
+
   if(ARGV_TARGET)
     list(APPEND args_bundle --target ${ARGV_TARGET})
+  endif()
+
+  if(ARGV_NAME)
+    list(APPEND args_bundle --name ${ARGV_NAME})
   endif()
 
   cmake_path(ABSOLUTE_PATH ARGV_OUT BASE_DIRECTORY ${ARGV_WORKING_DIRECTORY})
