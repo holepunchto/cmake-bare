@@ -192,6 +192,22 @@ function(link_bare_module receiver target specifier)
   )
 endfunction()
 
+function(link_bare_modules receiver)
+  file(GLOB packages node_modules/*/package.json)
+
+  foreach(package ${packages})
+    file(READ ${package} package)
+
+    string(JSON target ERROR_VARIABLE error GET "${package}" "addon" "target")
+
+    if(error MATCHES "NOTFOUND")
+      string(JSON name GET "${package}" "name")
+
+      link_bare_module(${receiver} ${target} ${name})
+    endif()
+  endforeach()
+endfunction()
+
 function(bare_include_directories result)
   find_bare_dev(bare_dev)
 
