@@ -1,5 +1,62 @@
 include(npm)
 
+function(find_bare result)
+  if(WIN32)
+    find_program(
+      bare_bin
+      NAMES bare.cmd bare
+      REQUIRED
+    )
+  else()
+    find_program(
+      bare_bin
+      NAMES bare
+      REQUIRED
+    )
+  endif()
+
+  execute_process(
+    COMMAND ${bare_bin} -p "Bare.argv[0]"
+    OUTPUT_VARIABLE bare
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    COMMAND_ERROR_IS_FATAL ANY
+  )
+
+  set(${result} ${bare})
+
+  return(PROPAGATE ${result})
+endfunction()
+
+function(find_bare_dev result)
+  resolve_node_module(bare-dev resolved)
+
+  if(NOT resolved MATCHES "NOTFOUND")
+    cmake_path(GET resolved PARENT_PATH node_modules)
+
+    list(APPEND hints ${node_modules}/.bin)
+  endif()
+
+  if(WIN32)
+    find_program(
+      bare_dev
+      NAMES bare-dev.cmd bare-dev
+      HINTS ${hints}
+      REQUIRED
+    )
+  else()
+    find_program(
+      bare_dev
+      NAMES bare-dev
+      HINTS ${hints}
+      REQUIRED
+    )
+  endif()
+
+  set(${result} ${bare_dev})
+
+  return(PROPAGATE ${result})
+endfunction()
+
 function(bare_platform result)
   set(platform ${CMAKE_SYSTEM_NAME})
 
@@ -223,7 +280,7 @@ endfunction()
 
 function(add_bare_bundle)
   cmake_parse_arguments(
-    PARSE_ARGV 0 ARGV "" "WORKING_DIRECTORY;ENTRY;OUT;FORMAT;TARGET;NAME;CONFIG" "DEPENDS"
+    PARSE_ARGV 0 ARGV "" "ENTRY;OUT;CONFIG;FORMAT;TARGET;NAME;WORKING_DIRECTORY" "DEPENDS"
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -247,10 +304,14 @@ function(add_bare_bundle)
   list(APPEND args_dependencies ${args})
 
   if(ARGV_FORMAT)
+    string(TOLOWER ${ARGV_FORMAT} ARGV_FORMAT)
+
     list(APPEND args_bundle --format ${ARGV_FORMAT})
   endif()
 
   if(ARGV_TARGET)
+    string(TOLOWER ${ARGV_TARGET} ARGV_TARGET)
+
     list(APPEND args_bundle --target ${ARGV_TARGET})
   endif()
 
@@ -296,7 +357,7 @@ endfunction()
 
 function(mirror_drive)
   cmake_parse_arguments(
-    PARSE_ARGV 0 ARGV "" "WORKING_DIRECTORY;SOURCE;DESTINATION;PREFIX;CHECKOUT" ""
+    PARSE_ARGV 0 ARGV "" "SOURCE;DESTINATION;PREFIX;CHECKOUT;WORKING_DIRECTORY" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -333,61 +394,4 @@ function(mirror_drive)
     "Mirrored drive ${ARGV_SOURCE} into ${ARGV_DESTINATION}\n"
     "${output}"
   )
-endfunction()
-
-function(find_bare result)
-  if(WIN32)
-    find_program(
-      bare_bin
-      NAMES bare.cmd bare
-      REQUIRED
-    )
-  else()
-    find_program(
-      bare_bin
-      NAMES bare
-      REQUIRED
-    )
-  endif()
-
-  execute_process(
-    COMMAND ${bare_bin} -p "Bare.argv[0]"
-    OUTPUT_VARIABLE bare
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    COMMAND_ERROR_IS_FATAL ANY
-  )
-
-  set(${result} ${bare})
-
-  return(PROPAGATE ${result})
-endfunction()
-
-function(find_bare_dev result)
-  resolve_node_module(bare-dev resolved)
-
-  if(NOT resolved MATCHES "NOTFOUND")
-    cmake_path(GET resolved PARENT_PATH node_modules)
-
-    list(APPEND hints ${node_modules}/.bin)
-  endif()
-
-  if(WIN32)
-    find_program(
-      bare_dev
-      NAMES bare-dev.cmd bare-dev
-      HINTS ${hints}
-      REQUIRED
-    )
-  else()
-    find_program(
-      bare_dev
-      NAMES bare-dev
-      HINTS ${hints}
-      REQUIRED
-    )
-  endif()
-
-  set(${result} ${bare_dev})
-
-  return(PROPAGATE ${result})
 endfunction()
