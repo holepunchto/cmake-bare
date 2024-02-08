@@ -230,7 +230,7 @@ function(include_bare_module target specifier)
 
     target_compile_definitions(
       ${target}
-      PUBLIC
+      PRIVATE
         BARE_MODULE_FILENAME="${specifier}@${version}"
         BARE_MODULE_REGISTER_CONSTRUCTOR
         BARE_MODULE_CONSTRUCTOR_VERSION=${constructor}
@@ -247,16 +247,10 @@ endfunction()
 function(link_bare_module receiver target specifier)
   include_bare_module(${target} ${specifier})
 
-  target_sources(
-    ${receiver}
-    PUBLIC
-      $<TARGET_OBJECTS:${target}>
-  )
-
   target_link_libraries(
     ${receiver}
     PUBLIC
-      $<TARGET_PROPERTY:${target},INTERFACE_LINK_LIBRARIES>
+      ${target}
   )
 endfunction()
 
