@@ -221,13 +221,24 @@ function(include_bare_module target specifier)
 
     string(MAKE_C_IDENTIFIER ${target} name)
 
+    string(
+      RANDOM
+      LENGTH 8
+      ALPHABET "ybndrfg8ejkmcpqxot1uwisza345h769" # z-base-32
+      constructor
+    )
+
     target_compile_definitions(
       ${target}
       PUBLIC
         BARE_MODULE_FILENAME="${specifier}@${version}"
         BARE_MODULE_REGISTER_CONSTRUCTOR
+        BARE_MODULE_CONSTRUCTOR_VERSION=${constructor}
+
         NAPI_MODULE_FILENAME="${specifier}@${version}"
         NAPI_MODULE_REGISTER_CONSTRUCTOR
+        NAPI_MODULE_CONSTRUCTOR_VERSION=${constructor}
+
         NODE_GYP_MODULE_NAME=${name}
     )
   endif()
