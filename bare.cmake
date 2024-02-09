@@ -150,6 +150,8 @@ function(bare_module_target directory result)
 
   string(SHA256 hash "${package_path}")
 
+  string(SUBSTRING "${hash}" 0 8 hash)
+
   set(${result} "${name}-${version}-${hash}")
 
   return(PROPAGATE ${result})
