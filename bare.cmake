@@ -279,9 +279,15 @@ endfunction()
 function(link_bare_module receiver specifier)
   include_bare_module(${specifier} target)
 
-  target_link_libraries(
+  target_sources(
     ${receiver}
     PUBLIC
+      $<TARGET_OBJECTS:${target}>
+  )
+
+  target_link_libraries(
+    ${receiver}
+    INTERFACE
       ${target}
   )
 endfunction()
