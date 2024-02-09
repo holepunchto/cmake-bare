@@ -135,7 +135,29 @@ function(bare_target result)
   return(PROPAGATE ${result})
 endfunction()
 
-function(add_bare_module target)
+function(bare_module_target directory result)
+  set(package_path package.json)
+
+  cmake_path(ABSOLUTE_PATH directory NORMALIZE)
+
+  cmake_path(ABSOLUTE_PATH package_path BASE_DIRECTORY "${directory}" NORMALIZE)
+
+  file(READ ${package_path} package)
+
+  string(JSON name GET "${package}" "name")
+
+  string(JSON version GET "${package}" "version")
+
+  string(SHA256 hash "${package_path}")
+
+  set(${result} "${name}-${version}-${hash}")
+
+  return(PROPAGATE ${result})
+endfunction()
+
+function(add_bare_module result)
+  bare_module_target("." target)
+
   bare_include_directories(includes)
 
   add_library(${target} OBJECT)
@@ -203,49 +225,59 @@ function(add_bare_module target)
     PRIVATE
       ${target}_import_lib
   )
+
+  set(${result} ${target})
+
+  return(PROPAGATE ${result})
 endfunction()
 
-function(include_bare_module target specifier)
-  if(NOT TARGET ${target})
-    resolve_node_module(${specifier} resolved)
+function(include_bare_module specifier result)
+  resolve_node_module(${specifier} resolved)
 
-    file(READ ${resolved}/package.json package)
+  bare_module_target(${resolved} target)
 
-    string(JSON version GET "${package}" "version")
+  file(READ ${resolved}/package.json package)
 
-    add_subdirectory(
-      ${resolved}
-      node_modules/${specifier}
-      EXCLUDE_FROM_ALL
-    )
+  string(JSON name GET "${package}" "name")
 
-    string(MAKE_C_IDENTIFIER ${target} name)
+  string(JSON version GET "${package}" "version")
 
-    string(
-      RANDOM
-      LENGTH 8
-      ALPHABET "ybndrfg8ejkmcpqxot1uwisza345h769" # z-base-32
-      constructor
-    )
+  add_subdirectory(
+    ${resolved}
+    node_modules/${name}
+    EXCLUDE_FROM_ALL
+  )
 
-    target_compile_definitions(
-      ${target}
-      PRIVATE
-        BARE_MODULE_FILENAME="${specifier}@${version}"
-        BARE_MODULE_REGISTER_CONSTRUCTOR
-        BARE_MODULE_CONSTRUCTOR_VERSION=${constructor}
+  string(MAKE_C_IDENTIFIER ${name} id)
 
-        NAPI_MODULE_FILENAME="${specifier}@${version}"
-        NAPI_MODULE_REGISTER_CONSTRUCTOR
-        NAPI_MODULE_CONSTRUCTOR_VERSION=${constructor}
+  string(
+    RANDOM
+    LENGTH 8
+    ALPHABET "ybndrfg8ejkmcpqxot1uwisza345h769" # z-base-32
+    constructor
+  )
 
-        NODE_GYP_MODULE_NAME=${name}
-    )
-  endif()
+  target_compile_definitions(
+    ${target}
+    PRIVATE
+      BARE_MODULE_FILENAME="${name}@${version}"
+      BARE_MODULE_REGISTER_CONSTRUCTOR
+      BARE_MODULE_CONSTRUCTOR_VERSION=${constructor}
+
+      NAPI_MODULE_FILENAME="${name}@${version}"
+      NAPI_MODULE_REGISTER_CONSTRUCTOR
+      NAPI_MODULE_CONSTRUCTOR_VERSION=${constructor}
+
+      NODE_GYP_MODULE_NAME=${id}
+  )
+
+  set(${result} ${target})
+
+  return(PROPAGATE ${result})
 endfunction()
 
-function(link_bare_module receiver target specifier)
-  include_bare_module(${target} ${specifier})
+function(link_bare_module receiver specifier)
+  include_bare_module(${specifier} target)
 
   target_link_libraries(
     ${receiver}
@@ -260,12 +292,12 @@ function(link_bare_modules receiver)
   foreach(package ${packages})
     file(READ ${package} package)
 
-    string(JSON target ERROR_VARIABLE error GET "${package}" "addon" "target")
+    string(JSON addon ERROR_VARIABLE error GET "${package}" "addon")
 
     if(error MATCHES "NOTFOUND")
       string(JSON name GET "${package}" "name")
 
-      link_bare_module(${receiver} ${target} ${name})
+      link_bare_module(${receiver} ${name})
     endif()
   endforeach()
 endfunction()

@@ -14,11 +14,13 @@
 
 #### `bare_target(<result>)`
 
-#### `add_bare_module(<target>)`
+#### `bare_module_target(<directory> <result>)`
 
-#### `include_bare_module(<target> <specifier>)`
+#### `add_bare_module(<result>)`
 
-#### `link_bare_module(<receiver> <target> <specifier>)`
+#### `include_bare_module(<specifier> <result>)`
+
+#### `link_bare_module(<receiver> <specifier>)`
 
 #### `link_bare_modules(<receiver>)`
 
