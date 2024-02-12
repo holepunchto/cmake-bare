@@ -1,5 +1,7 @@
 include(npm)
 
+set(bare_module_dir ${CMAKE_CURRENT_LIST_DIR})
+
 function(find_bare result)
   if(WIN32)
     find_program(
@@ -171,6 +173,14 @@ function(add_bare_module result)
     CXX_STANDARD 20
     POSITION_INDEPENDENT_CODE ON
   )
+
+  if(MSVC)
+    target_sources(
+      ${target}
+      PRIVATE
+        "${bare_module_dir}/delay-load.c"
+    )
+  endif()
 
   target_include_directories(
     ${target}
