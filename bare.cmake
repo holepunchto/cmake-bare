@@ -204,6 +204,12 @@ function(add_bare_module result)
       PROPERTIES
       IMPORTED_IMPLIB ${bare_lib}
     )
+
+    target_link_options(
+      ${target}_import_lib
+      INTERFACE
+        /DELAYLOAD:bare.exe
+    )
   endif()
 
   add_library(${target}_module MODULE)
