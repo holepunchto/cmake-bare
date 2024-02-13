@@ -174,14 +174,6 @@ function(add_bare_module result)
     POSITION_INDEPENDENT_CODE ON
   )
 
-  if(MSVC)
-    target_sources(
-      ${target}
-      PRIVATE
-        "${bare_module_dir}/win32/delay-load.c"
-    )
-  endif()
-
   target_include_directories(
     ${target}
     PRIVATE
@@ -235,6 +227,14 @@ function(add_bare_module result)
     # module authors would have to explicitly export public symbols.
     WINDOWS_EXPORT_ALL_SYMBOLS ON
   )
+
+  if(MSVC)
+    target_sources(
+      ${target}_module
+      PRIVATE
+        "${bare_module_dir}/win32/delay-load.c"
+    )
+  endif()
 
   target_link_libraries(
     ${target}_module
