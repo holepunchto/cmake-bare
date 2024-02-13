@@ -178,7 +178,7 @@ function(add_bare_module result)
     target_sources(
       ${target}
       PRIVATE
-        "${bare_module_dir}/delay-load.c"
+        "${bare_module_dir}/win32/delay-load.c"
     )
   endif()
 
