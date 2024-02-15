@@ -305,7 +305,7 @@ function(link_bare_module receiver specifier)
 
   target_link_libraries(
     ${receiver}
-    INTERFACE
+    PUBLIC
       ${target}
   )
 endfunction()
