@@ -1,6 +1,6 @@
 include(npm)
 
-set(bare_module_dir ${CMAKE_CURRENT_LIST_DIR})
+set(bare_module_dir "${CMAKE_CURRENT_LIST_DIR}")
 
 function(find_bare result)
   if(WIN32)
@@ -18,13 +18,13 @@ function(find_bare result)
   endif()
 
   execute_process(
-    COMMAND ${bare_bin} -p "Bare.argv[0]"
+    COMMAND "${bare_bin}" -p "Bare.argv[0]"
     OUTPUT_VARIABLE bare
     OUTPUT_STRIP_TRAILING_WHITESPACE
     COMMAND_ERROR_IS_FATAL ANY
   )
 
-  set(${result} ${bare})
+  set(${result} "${bare}")
 
   return(PROPAGATE ${result})
 endfunction()
@@ -35,7 +35,7 @@ function(find_bare_dev result)
   if(NOT resolved MATCHES "NOTFOUND")
     cmake_path(GET resolved PARENT_PATH node_modules)
 
-    list(APPEND hints ${node_modules}/.bin)
+    list(APPEND hints "${node_modules}/.bin")
   endif()
 
   if(WIN32)
@@ -54,7 +54,7 @@ function(find_bare_dev result)
     )
   endif()
 
-  set(${result} ${bare_dev})
+  set(${result} "${bare_dev}")
 
   return(PROPAGATE ${result})
 endfunction()
@@ -144,7 +144,7 @@ function(bare_module_target directory result)
 
   cmake_path(ABSOLUTE_PATH package_path BASE_DIRECTORY "${directory}" NORMALIZE)
 
-  file(READ ${package_path} package)
+  file(READ "${package_path}" package)
 
   string(JSON name GET "${package}" "name")
 
@@ -188,7 +188,7 @@ function(add_bare_module result)
     ${target}_import_lib
     PROPERTIES
     ENABLE_EXPORTS ON
-    IMPORTED_LOCATION ${bare}
+    IMPORTED_LOCATION "${bare}"
   )
 
   if(MSVC)
@@ -198,13 +198,13 @@ function(add_bare_module result)
     find_library(
       bare_lib
       NAMES bare
-      HINTS ${root}/lib
+      HINTS "${root}/lib"
     )
 
     set_target_properties(
       ${target}_import_lib
       PROPERTIES
-      IMPORTED_IMPLIB ${bare_lib}
+      IMPORTED_IMPLIB "${bare_lib}"
     )
 
     target_link_options(
@@ -252,17 +252,17 @@ endfunction()
 function(include_bare_module specifier result)
   resolve_node_module(${specifier} resolved)
 
-  bare_module_target(${resolved} target)
+  bare_module_target("${resolved}" target)
 
-  file(READ ${resolved}/package.json package)
+  file(READ "${resolved}/package.json" package)
 
   string(JSON name GET "${package}" "name")
 
   string(JSON version GET "${package}" "version")
 
   add_subdirectory(
-    ${resolved}
-    node_modules/${name}
+    "${resolved}"
+    "node_modules/${name}"
     EXCLUDE_FROM_ALL
   )
 
@@ -313,8 +313,8 @@ endfunction()
 function(link_bare_modules receiver)
   file(GLOB packages node_modules/*/package.json)
 
-  foreach(package ${packages})
-    file(READ ${package} package)
+  foreach(package_path ${packages})
+    file(READ "${package_path}" package)
 
     string(JSON addon ERROR_VARIABLE error GET "${package}" "addon")
 
@@ -330,11 +330,11 @@ function(bare_include_directories result)
   find_bare_dev(bare_dev)
 
   execute_process(
-    COMMAND ${bare_dev} paths include
+    COMMAND "${bare_dev}" paths include
     OUTPUT_VARIABLE bare
   )
 
-  list(APPEND ${result} ${bare})
+  list(APPEND ${result} "${bare}")
 
   return(PROPAGATE ${result})
 endfunction()
@@ -345,19 +345,19 @@ function(add_bare_bundle)
   )
 
   if(ARGV_WORKING_DIRECTORY)
-    cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+    cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)
   else()
-    set(ARGV_WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+    set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
   endif()
 
-  list(APPEND args --cwd ${ARGV_WORKING_DIRECTORY})
+  list(APPEND args --cwd "${ARGV_WORKING_DIRECTORY}")
 
   if(ARGV_CONFIG)
-    cmake_path(ABSOLUTE_PATH ARGV_CONFIG BASE_DIRECTORY ${ARGV_WORKING_DIRECTORY})
+    cmake_path(ABSOLUTE_PATH ARGV_CONFIG BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" NORMALIZE)
 
-    list(APPEND args --config ${ARGV_CONFIG})
+    list(APPEND args --config "${ARGV_CONFIG}")
 
-    list(APPEND ARGV_DEPENDS ${ARGV_CONFIG})
+    list(APPEND ARGV_DEPENDS "${ARGV_CONFIG}")
   endif()
 
   list(APPEND args_bundle ${args})
@@ -380,38 +380,38 @@ function(add_bare_bundle)
     list(APPEND args_bundle --name ${ARGV_NAME})
   endif()
 
-  cmake_path(ABSOLUTE_PATH ARGV_OUT BASE_DIRECTORY ${ARGV_WORKING_DIRECTORY})
+  cmake_path(ABSOLUTE_PATH ARGV_OUT BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" NORMALIZE)
 
-  list(APPEND args_bundle --out ${ARGV_OUT})
+  list(APPEND args_bundle --out "${ARGV_OUT}")
 
-  list(APPEND args_dependencies --out ${ARGV_OUT}.d)
+  list(APPEND args_dependencies --out "${ARGV_OUT}.d")
 
-  cmake_path(ABSOLUTE_PATH ARGV_ENTRY BASE_DIRECTORY ${ARGV_WORKING_DIRECTORY})
+  cmake_path(ABSOLUTE_PATH ARGV_ENTRY BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" NORMALIZE)
 
-  list(APPEND ARGV_DEPENDS ${ARGV_ENTRY})
+  list(APPEND ARGV_DEPENDS "${ARGV_ENTRY}")
 
-  list(APPEND args_bundle ${ARGV_ENTRY})
+  list(APPEND args_bundle "${ARGV_ENTRY}")
 
-  list(APPEND args_dependencies ${ARGV_ENTRY})
+  list(APPEND args_dependencies "${ARGV_ENTRY}")
 
   find_bare_dev(bare_dev)
 
   list(REMOVE_DUPLICATES ARGV_DEPENDS)
 
   add_custom_command(
-    COMMAND ${bare_dev} dependencies ${args_dependencies}
-    WORKING_DIRECTORY ${ARGV_WORKING_DIRECTORY}
-    OUTPUT ${ARGV_OUT}.d
+    COMMAND "${bare_dev}" dependencies ${args_dependencies}
+    WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
+    OUTPUT "${ARGV_OUT}.d"
     DEPENDS ${ARGV_DEPENDS}
     VERBATIM
   )
 
   add_custom_command(
-    COMMAND ${bare_dev} bundle ${args_bundle}
-    WORKING_DIRECTORY ${ARGV_WORKING_DIRECTORY}
-    OUTPUT ${ARGV_OUT}
-    DEPENDS ${ARGV_OUT}.d
-    DEPFILE ${ARGV_OUT}.d
+    COMMAND "${bare_dev}" bundle ${args_bundle}
+    WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
+    OUTPUT "${ARGV_OUT}"
+    DEPENDS "${ARGV_OUT}.d"
+    DEPFILE "${ARGV_OUT}.d"
     VERBATIM
   )
 endfunction()
@@ -422,33 +422,31 @@ function(mirror_drive)
   )
 
   if(ARGV_WORKING_DIRECTORY)
-    list(APPEND args --cwd ${ARGV_WORKING_DIRECTORY})
+    cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)
+
+    list(APPEND args --cwd "${ARGV_WORKING_DIRECTORY}")
+  else()
+    set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
   endif()
 
   if(ARGV_PREFIX)
-    list(APPEND args --prefix ${ARGV_PREFIX})
+    list(APPEND args --prefix "${ARGV_PREFIX}")
   endif()
 
   if(ARGV_CHECKOUT)
     list(APPEND args --checkout ${ARGV_CHECKOUT})
   endif()
 
-  list(APPEND args ${ARGV_SOURCE} ${ARGV_DESTINATION})
-
-  if(ARGV_WORKING_DIRECTORY)
-    cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-  else()
-    set(ARGV_WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-  endif()
+  list(APPEND args "${ARGV_SOURCE}" "${ARGV_DESTINATION}")
 
   find_bare_dev(bare_dev)
 
   message(STATUS "Mirroring drive ${ARGV_SOURCE} into ${ARGV_DESTINATION}")
 
   execute_process(
-    COMMAND ${bare_dev} drive mirror ${args}
+    COMMAND "${bare_dev}" drive mirror ${args}
     OUTPUT_VARIABLE output
-    WORKING_DIRECTORY ${ARGV_WORKING_DIRECTORY}
+    WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
   message(CONFIGURE_LOG
