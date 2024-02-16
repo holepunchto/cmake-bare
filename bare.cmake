@@ -35,7 +35,9 @@ function(find_bare_dev result)
   if(NOT resolved MATCHES "NOTFOUND")
     cmake_path(GET resolved PARENT_PATH node_modules)
 
-    list(APPEND hints "${node_modules}/.bin")
+    cmake_path(APPEND node_modules ".bin" OUTPUT_VARIABLE bin)
+
+    list(APPEND hints "${bin}")
   endif()
 
   if(WIN32)
@@ -195,10 +197,12 @@ function(add_bare_module result)
     cmake_path(GET bare PARENT_PATH root)
     cmake_path(GET root PARENT_PATH root)
 
+    cmake_path(APPEND root "lib" OUTPUT_VARIABLE lib)
+
     find_library(
       bare_lib
       NAMES bare
-      HINTS "${root}/lib"
+      HINTS "${lib}"
     )
 
     set_target_properties(
