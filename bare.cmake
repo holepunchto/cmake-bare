@@ -299,6 +299,10 @@ function(include_bare_module specifier result)
 endfunction()
 
 function(link_bare_module receiver specifier)
+  cmake_parse_arguments(
+    PARSE_ARGV 2 ARGV "AMALGAMATED" "" "DEPENDS"
+  )
+
   include_bare_module(${specifier} target)
 
   target_sources(
@@ -312,6 +316,38 @@ function(link_bare_module receiver specifier)
     PUBLIC
       ${target}
   )
+
+  if(ARGV_AMALGAMATED)
+    get_target_property(queue ${target} LINK_LIBRARIES)
+
+    list(LENGTH queue length)
+
+    get_target_property(sources ${receiver} SOURCES)
+
+    while(length GREATER 0)
+      list(POP_FRONT queue dependency)
+
+      if(NOT ${dependency} IN_LIST seen)
+        list(APPEND seen ${dependency})
+
+        if(NOT $<TARGET_OBJECTS:${dependency}> IN_LIST sources)
+          target_sources(
+            ${receiver}
+            PUBLIC
+              $<TARGET_OBJECTS:${dependency}>
+          )
+        endif()
+
+        get_target_property(dependencies ${dependency} LINK_LIBRARIES)
+
+        if(NOT "${dependencies}" MATCHES "NOTFOUND")
+          list(APPEND queue ${dependencies})
+        endif()
+      endif()
+
+      list(LENGTH queue length)
+    endwhile()
+  endif()
 endfunction()
 
 function(link_bare_modules receiver)
