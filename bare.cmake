@@ -300,7 +300,7 @@ endfunction()
 
 function(link_bare_module receiver specifier)
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "AMALGAMATED" "" "DEPENDS"
+    PARSE_ARGV 2 ARGV "AMALGAMATED" "" "EXCLUDE"
   )
 
   include_bare_module(${specifier} target)
@@ -327,7 +327,7 @@ function(link_bare_module receiver specifier)
     while(length GREATER 0)
       list(POP_FRONT queue dependency)
 
-      if(NOT ${dependency} IN_LIST seen)
+      if(NOT ${dependency} IN_LIST seen AND NOT ${dependency} IN_LIST ARGV_EXCLUDE)
         list(APPEND seen ${dependency})
 
         if(NOT $<TARGET_OBJECTS:${dependency}> IN_LIST sources)
