@@ -182,40 +182,44 @@ function(add_bare_module result)
       ${includes}
   )
 
-  find_bare(bare)
+  if(TARGET bare_bin)
+    add_executable(${target}_import_lib ALIAS bare_bin)
+  else()
+    find_bare(bare)
 
-  add_executable(${target}_import_lib IMPORTED)
-
-  set_target_properties(
-    ${target}_import_lib
-    PROPERTIES
-    ENABLE_EXPORTS ON
-    IMPORTED_LOCATION "${bare}"
-  )
-
-  if(MSVC)
-    cmake_path(GET bare PARENT_PATH root)
-    cmake_path(GET root PARENT_PATH root)
-
-    cmake_path(APPEND root "lib" OUTPUT_VARIABLE lib)
-
-    find_library(
-      bare_lib
-      NAMES bare
-      HINTS "${lib}"
-    )
+    add_executable(${target}_import_lib IMPORTED)
 
     set_target_properties(
       ${target}_import_lib
       PROPERTIES
-      IMPORTED_IMPLIB "${bare_lib}"
+      ENABLE_EXPORTS ON
+      IMPORTED_LOCATION "${bare}"
     )
 
-    target_link_options(
-      ${target}_import_lib
-      INTERFACE
-        /DELAYLOAD:bare.exe
-    )
+    if(MSVC)
+      cmake_path(GET bare PARENT_PATH root)
+      cmake_path(GET root PARENT_PATH root)
+
+      cmake_path(APPEND root "lib" OUTPUT_VARIABLE lib)
+
+      find_library(
+        bare_lib
+        NAMES bare
+        HINTS "${lib}"
+      )
+
+      set_target_properties(
+        ${target}_import_lib
+        PROPERTIES
+        IMPORTED_IMPLIB "${bare_lib}"
+      )
+
+      target_link_options(
+        ${target}_import_lib
+        INTERFACE
+          /DELAYLOAD:bare.exe
+      )
+    endif()
   endif()
 
   add_library(${target}_module MODULE)
