@@ -20,7 +20,7 @@
 
 #### `include_bare_module(<specifier> <result>)`
 
-#### `link_bare_module(<receiver> <specifier>)`
+#### `link_bare_module(<receiver> <specifier> [AMALGAMATED [EXCLUDE <...targets>]])`
 
 #### `link_bare_modules(<receiver>)`
 
