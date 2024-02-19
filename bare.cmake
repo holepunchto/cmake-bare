@@ -303,6 +303,10 @@ function(include_bare_module specifier result)
 endfunction()
 
 function(link_bare_module receiver specifier)
+  cmake_parse_arguments(
+    PARSE_ARGV 2 ARGV "AMALGAMATE" "" "EXCLUDE"
+  )
+
   include_bare_module(${specifier} target)
 
   target_sources(
@@ -316,10 +320,58 @@ function(link_bare_module receiver specifier)
     PUBLIC
       ${target}
   )
+
+  if(ARGV_AMALGAMATE)
+    get_target_property(queue ${target} LINK_LIBRARIES)
+
+    if(NOT "${queue}" MATCHES "NOTFOUND")
+      list(LENGTH queue length)
+
+      get_target_property(sources ${receiver} SOURCES)
+
+      list(APPEND seen ${ARGV_EXCLUDE})
+
+      while(length GREATER 0)
+        list(POP_FRONT queue dependency)
+
+        if(NOT ${dependency} IN_LIST seen)
+          list(APPEND seen ${dependency})
+
+          if(NOT $<TARGET_OBJECTS:${dependency}> IN_LIST sources)
+            target_sources(
+              ${receiver}
+              PUBLIC
+                $<TARGET_OBJECTS:${dependency}>
+            )
+          endif()
+
+          get_target_property(dependencies ${dependency} LINK_LIBRARIES)
+
+          if(NOT "${dependencies}" MATCHES "NOTFOUND")
+            list(APPEND queue ${dependencies})
+          endif()
+        endif()
+
+        list(LENGTH queue length)
+      endwhile()
+    endif()
+  endif()
 endfunction()
 
 function(link_bare_modules receiver)
+  cmake_parse_arguments(
+    PARSE_ARGV 1 ARGV "AMALGAMATE" "" "EXCLUDE"
+  )
+
   file(GLOB packages node_modules/*/package.json)
+
+  if(ARGV_AMALGAMATE)
+    list(APPEND args AMALGAMATE)
+
+    if(ARGV_EXCLUDE)
+      list(APPEND args EXCLUDE ${ARGV_EXCLUDE})
+    endif()
+  endif()
 
   foreach(package_path ${packages})
     file(READ "${package_path}" package)
@@ -329,7 +381,7 @@ function(link_bare_modules receiver)
     if(error MATCHES "NOTFOUND")
       string(JSON name GET "${package}" "name")
 
-      link_bare_module(${receiver} ${name})
+      link_bare_module(${receiver} ${name} ${args})
     endif()
   endforeach()
 endfunction()

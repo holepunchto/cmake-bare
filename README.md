@@ -20,9 +20,9 @@
 
 #### `include_bare_module(<specifier> <result>)`
 
-#### `link_bare_module(<receiver> <specifier>)`
+#### `link_bare_module(<receiver> <specifier> [AMALGAMATE [EXCLUDE <...targets>]])`
 
-#### `link_bare_modules(<receiver>)`
+#### `link_bare_modules(<receiver> [AMALGAMATE [EXCLUDE <...targets>]])`
 
 #### `bare_include_directories(<result>)`
 
