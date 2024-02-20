@@ -360,10 +360,14 @@ endfunction()
 
 function(link_bare_modules receiver)
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "AMALGAMATE" "" "EXCLUDE"
+    PARSE_ARGV 1 ARGV "DEVELOPMENT;AMALGAMATE" "" "EXCLUDE"
   )
 
-  file(GLOB packages node_modules/*/package.json)
+  if(ARGV_DEVELOPMENT)
+    set(DEVELOPMENT DEVELOPMENT)
+  endif()
+
+  list_node_modules(packages ${DEVELOPMENT})
 
   if(ARGV_AMALGAMATE)
     list(APPEND args AMALGAMATE)
@@ -373,7 +377,9 @@ function(link_bare_modules receiver)
     endif()
   endif()
 
-  foreach(package_path ${packages})
+  foreach(base ${packages})
+    cmake_path(APPEND base package.json OUTPUT_VARIABLE package_path)
+
     file(READ "${package_path}" package)
 
     string(JSON addon ERROR_VARIABLE error GET "${package}" "addon")
