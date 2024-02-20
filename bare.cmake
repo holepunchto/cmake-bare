@@ -304,7 +304,7 @@ endfunction()
 
 function(link_bare_module receiver specifier)
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "AMALGAMATE" "" "EXCLUDE"
+    PARSE_ARGV 2 ARGV "AMALGAMATE" "" "EXCLUDE;RUNTIME_LIBRARIES"
   )
 
   include_bare_module(${specifier} target)
@@ -321,6 +321,10 @@ function(link_bare_module receiver specifier)
       ${target}
   )
 
+  if(NOT DEFINED ARGV_RUNTIME_LIBRARIES)
+    list(APPEND ARGV_RUNTIME_LIBRARIES uv uv_a napi mem utf)
+  endif()
+
   if(ARGV_AMALGAMATE)
     get_target_property(queue ${target} LINK_LIBRARIES)
 
@@ -329,7 +333,7 @@ function(link_bare_module receiver specifier)
 
       get_target_property(sources ${receiver} SOURCES)
 
-      list(APPEND seen ${ARGV_EXCLUDE})
+      list(APPEND seen ${ARGV_EXCLUDE} ${ARGV_RUNTIME_LIBRARIES})
 
       while(length GREATER 0)
         list(POP_FRONT queue dependency)
@@ -360,7 +364,7 @@ endfunction()
 
 function(link_bare_modules receiver)
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "DEVELOPMENT;AMALGAMATE" "" "EXCLUDE"
+    PARSE_ARGV 1 ARGV "DEVELOPMENT;AMALGAMATE" "" "EXCLUDE;RUNTIME_LIBRARIES"
   )
 
   if(ARGV_DEVELOPMENT)
@@ -372,8 +376,12 @@ function(link_bare_modules receiver)
   if(ARGV_AMALGAMATE)
     list(APPEND args AMALGAMATE)
 
-    if(ARGV_EXCLUDE)
+    if(DEFINED ARGV_EXCLUDE)
       list(APPEND args EXCLUDE ${ARGV_EXCLUDE})
+    endif()
+
+    if(DEFINED ARGV_RUNTIME_LIBRARIES)
+      list(APPEND args RUNTIME_LIBRARIES ${ARGV_RUNTIME_LIBRARIES})
     endif()
   endif()
 
