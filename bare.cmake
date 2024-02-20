@@ -140,6 +140,10 @@ function(bare_target result)
 endfunction()
 
 function(bare_module_target directory result)
+  cmake_parse_arguments(
+    PARSE_ARGV 2 ARGV "" "NAME;VERSION;HASH" ""
+  )
+
   set(package_path package.json)
 
   cmake_path(ABSOLUTE_PATH directory NORMALIZE)
@@ -150,6 +154,8 @@ function(bare_module_target directory result)
 
   string(JSON name GET "${package}" "name")
 
+  string(REGEX REPLACE "/" "+" name ${name})
+
   string(JSON version GET "${package}" "version")
 
   string(SHA256 hash "${package_path}")
@@ -158,11 +164,23 @@ function(bare_module_target directory result)
 
   set(${result} "${name}-${version}-${hash}")
 
-  return(PROPAGATE ${result})
+  if(ARGV_NAME)
+    set(${ARGV_NAME} ${name})
+  endif()
+
+  if(ARGV_VERSION)
+    set(${ARGV_VERSION} ${version})
+  endif()
+
+  if(ARGV_HASH)
+    set(${ARGV_HASH} ${hash})
+  endif()
+
+  return(PROPAGATE ${result} ${ARGV_NAME} ${ARGV_VERSION} ${ARGV_HASH})
 endfunction()
 
 function(add_bare_module result)
-  bare_module_target("." target)
+  bare_module_target("." target NAME name)
 
   bare_include_directories(includes)
 
@@ -227,7 +245,7 @@ function(add_bare_module result)
   set_target_properties(
     ${target}_module
     PROPERTIES
-    OUTPUT_NAME "addon"
+    OUTPUT_NAME ${name}
     PREFIX ""
     SUFFIX ".bare"
 
