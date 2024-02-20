@@ -334,7 +334,7 @@ function(link_bare_module receiver specifier)
       while(length GREATER 0)
         list(POP_FRONT queue dependency)
 
-        if(NOT ${dependency} IN_LIST seen)
+        if(TARGET ${dependency} AND NOT ${dependency} IN_LIST seen)
           list(APPEND seen ${dependency})
 
           if(NOT $<TARGET_OBJECTS:${dependency}> IN_LIST sources)
