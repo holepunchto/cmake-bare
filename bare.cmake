@@ -276,7 +276,20 @@ function(add_bare_module result)
 endfunction()
 
 function(include_bare_module specifier result)
-  resolve_node_module(${specifier} resolved)
+  cmake_parse_arguments(
+    PARSE_ARGV 2 ARGV "" "WORKING_DIRECTORY" ""
+  )
+
+  if(ARGV_WORKING_DIRECTORY)
+    cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)
+  else()
+    set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
+  endif()
+
+  resolve_node_module(
+    ${specifier} resolved
+    WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
+  )
 
   bare_module_target("${resolved}" target)
 
@@ -322,10 +335,19 @@ endfunction()
 
 function(link_bare_module receiver specifier)
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "AMALGAMATE" "" "EXCLUDE;RUNTIME_LIBRARIES"
+    PARSE_ARGV 2 ARGV "AMALGAMATE" "WORKING_DIRECTORY" "EXCLUDE;RUNTIME_LIBRARIES"
   )
 
-  include_bare_module(${specifier} target)
+  if(ARGV_WORKING_DIRECTORY)
+    cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)
+  else()
+    set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
+  endif()
+
+  include_bare_module(
+    ${specifier} target
+    WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
+  )
 
   target_sources(
     ${receiver}
@@ -382,14 +404,23 @@ endfunction()
 
 function(link_bare_modules receiver)
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "DEVELOPMENT;AMALGAMATE" "" "EXCLUDE;RUNTIME_LIBRARIES"
+    PARSE_ARGV 1 ARGV "DEVELOPMENT;AMALGAMATE" "WORKING_DIRECTORY" "EXCLUDE;RUNTIME_LIBRARIES"
   )
+
+  if(ARGV_WORKING_DIRECTORY)
+    cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)
+  else()
+    set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
+  endif()
 
   if(ARGV_DEVELOPMENT)
     set(DEVELOPMENT DEVELOPMENT)
   endif()
 
-  list_node_modules(packages ${DEVELOPMENT})
+  list_node_modules(
+    packages ${DEVELOPMENT}
+    WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
+  )
 
   if(ARGV_AMALGAMATE)
     list(APPEND args AMALGAMATE)
@@ -515,11 +546,11 @@ function(mirror_drive)
 
   if(ARGV_WORKING_DIRECTORY)
     cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)
-
-    list(APPEND args --cwd "${ARGV_WORKING_DIRECTORY}")
   else()
     set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
   endif()
+
+  list(APPEND args --cwd "${ARGV_WORKING_DIRECTORY}")
 
   if(ARGV_PREFIX)
     list(APPEND args --prefix "${ARGV_PREFIX}")
