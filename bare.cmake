@@ -1,5 +1,7 @@
 include(npm)
 
+set(BARE_SCRIPT_INTERPRETER node CACHE STRING "The script interpreter to use")
+
 set(bare_module_dir "${CMAKE_CURRENT_LIST_DIR}")
 
 function(find_bare result)
@@ -57,6 +59,26 @@ function(find_bare_dev result)
   endif()
 
   set(${result} "${bare_dev}")
+
+  return(PROPAGATE ${result})
+endfunction()
+
+function(find_bare_script_interpreter result)
+  if(WIN32)
+    find_program(
+      script_interpreter
+      NAMES "${BARE_SCRIPT_INTERPRETER}.cmd" "${BARE_SCRIPT_INTERPRETER}"
+      REQUIRED
+    )
+  else()
+    find_program(
+      script_interpreter
+      NAMES "${BARE_SCRIPT_INTERPRETER}"
+      REQUIRED
+    )
+  endif()
+
+  set(${result} "${script_interpreter}")
 
   return(PROPAGATE ${result})
 endfunction()
@@ -450,14 +472,15 @@ function(link_bare_modules receiver)
 endfunction()
 
 function(bare_include_directories result)
-  find_bare_dev(bare_dev)
+  find_bare_script_interpreter(script_interpreter)
 
   execute_process(
-    COMMAND "${bare_dev}" paths include
-    OUTPUT_VARIABLE bare
+    COMMAND "${script_interpreter}" "${bare_module_dir}/include-directories.js"
+    OUTPUT_VARIABLE include_directories
+    OUTPUT_STRIP_TRAILING_WHITESPACE
   )
 
-  list(APPEND ${result} "${bare}")
+  list(APPEND ${result} "${include_directories}")
 
   return(PROPAGATE ${result})
 endfunction()
@@ -550,25 +573,30 @@ function(mirror_drive)
     set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
   endif()
 
-  list(APPEND args --cwd "${ARGV_WORKING_DIRECTORY}")
-
-  if(ARGV_PREFIX)
-    list(APPEND args --prefix "${ARGV_PREFIX}")
+  if(NOT ARGV_PREFIX)
+    set(ARGV_PREFIX /)
   endif()
 
-  if(ARGV_CHECKOUT)
-    list(APPEND args --checkout ${ARGV_CHECKOUT})
+  if(NOT ARGV_CHECKOUT)
+    set(ARGV_CHECKOUT 0)
   endif()
 
-  list(APPEND args "${ARGV_SOURCE}" "${ARGV_DESTINATION}")
+  list(APPEND args
+    "${ARGV_WORKING_DIRECTORY}"
+    "${ARGV_PREFIX}"
+    "${ARGV_CHECKOUT}"
+    "${ARGV_SOURCE}"
+    "${ARGV_DESTINATION}"
+  )
 
-  find_bare_dev(bare_dev)
+  find_bare_script_interpreter(script_interpreter)
 
   message(STATUS "Mirroring drive ${ARGV_SOURCE} into ${ARGV_DESTINATION}")
 
   execute_process(
-    COMMAND "${bare_dev}" drive mirror ${args}
+    COMMAND "${script_interpreter}" "${bare_module_dir}/mirror.js" ${args}
     OUTPUT_VARIABLE output
+    OUTPUT_STRIP_TRAILING_WHITESPACE
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
