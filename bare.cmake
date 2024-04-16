@@ -1,6 +1,8 @@
 include(npm)
 
-set(BARE_SCRIPT_INTERPRETER node CACHE STRING "The script interpreter to use")
+set(BARE_SCRIPT_INTERPRETER "node" CACHE STRING "The script interpreter to use")
+
+set(BARE_SCRIPT_INTERPRETER_ARGS "" CACHE STRING "Arguments to pass to the script interpreter")
 
 set(bare_module_dir "${CMAKE_CURRENT_LIST_DIR}")
 
@@ -77,6 +79,12 @@ function(find_bare_script_interpreter result)
       REQUIRED
     )
   endif()
+
+  if(BARE_SCRIPT_INTERPRETER_ARGS)
+    set(script_interpreter "${script_interpreter} ${BARE_SCRIPT_INTERPRETER_ARGS}")
+  endif()
+
+  message("script_interpreter=${script_interpreter}")
 
   set(${result} "${script_interpreter}")
 
@@ -475,7 +483,7 @@ function(bare_include_directories result)
   find_bare_script_interpreter(script_interpreter)
 
   execute_process(
-    COMMAND "${script_interpreter}" "${bare_module_dir}/include-directories.js"
+    COMMAND ${script_interpreter} "${bare_module_dir}/include-directories.js"
     OUTPUT_VARIABLE include_directories
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )
@@ -594,7 +602,7 @@ function(mirror_drive)
   message(STATUS "Mirroring drive ${ARGV_SOURCE} into ${ARGV_DESTINATION}")
 
   execute_process(
-    COMMAND "${script_interpreter}" "${bare_module_dir}/mirror.js" ${args}
+    COMMAND ${script_interpreter} "${bare_module_dir}/mirror.js" ${args}
     OUTPUT_VARIABLE output
     OUTPUT_STRIP_TRAILING_WHITESPACE
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
