@@ -84,8 +84,6 @@ function(find_bare_script_interpreter result)
     set(script_interpreter "${script_interpreter} ${BARE_SCRIPT_INTERPRETER_ARGS}")
   endif()
 
-  message("script_interpreter=${script_interpreter}")
-
   set(${result} "${script_interpreter}")
 
   return(PROPAGATE ${result})
