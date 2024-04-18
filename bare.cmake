@@ -81,7 +81,9 @@ function(find_bare_script_interpreter result)
   endif()
 
   if(BARE_SCRIPT_INTERPRETER_ARGS)
-    set(script_interpreter "${script_interpreter} ${BARE_SCRIPT_INTERPRETER_ARGS}")
+    separate_arguments(BARE_SCRIPT_INTERPRETER_ARGS)
+
+    set(script_interpreter ${script_interpreter} ${BARE_SCRIPT_INTERPRETER_ARGS})
   endif()
 
   set(${result} "${script_interpreter}")
