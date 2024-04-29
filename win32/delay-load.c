@@ -3,7 +3,9 @@
 //
 // See https://learn.microsoft.com/en-us/cpp/build/reference/understanding-the-helper-function
 
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 
 #include <windows.h> // Must come first
 
