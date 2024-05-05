@@ -464,6 +464,7 @@ function(link_bare_modules receiver)
     endif()
   endif()
 
+  set(linked_names "")
   foreach(base ${packages})
     cmake_path(APPEND base package.json OUTPUT_VARIABLE package_path)
 
@@ -473,8 +474,12 @@ function(link_bare_modules receiver)
 
     if(error MATCHES "NOTFOUND")
       string(JSON name GET "${package}" "name")
+      list(FIND linked_names ${name} name_index)
 
-      link_bare_module(${receiver} ${name} ${args})
+      if (name_index EQUAL -1)
+        list(APPEND linked_names ${name})
+        link_bare_module(${receiver} ${name} ${args})
+      endif()
     endif()
   endforeach()
 endfunction()
