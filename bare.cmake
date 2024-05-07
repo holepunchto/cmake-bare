@@ -317,23 +317,21 @@ function(include_bare_module specifier result)
   endif()
 
   resolve_node_module(
-    ${specifier} resolved
+    ${specifier} source_dir
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
-  bare_module_target("${resolved}" target)
+  bare_module_target("${source_dir}" target)
 
-  file(READ "${resolved}/package.json" package)
+  file(READ "${source_dir}/package.json" package)
 
   string(JSON name GET "${package}" "name")
 
   string(JSON version GET "${package}" "version")
 
-  add_subdirectory(
-    "${resolved}"
-    "node_modules/${name}"
-    EXCLUDE_FROM_ALL
-  )
+  cmake_path(RELATIVE_PATH source_dir BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" OUTPUT_VARIABLE binary_dir)
+
+  add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)
 
   string(MAKE_C_IDENTIFIER ${name} id)
 
@@ -472,9 +470,7 @@ function(link_bare_modules receiver)
     string(JSON addon ERROR_VARIABLE error GET "${package}" "addon")
 
     if(error MATCHES "NOTFOUND")
-      string(JSON name GET "${package}" "name")
-
-      link_bare_module(${receiver} ${name} ${args})
+      link_bare_module(${receiver} ${base} ${args})
     endif()
   endforeach()
 endfunction()
