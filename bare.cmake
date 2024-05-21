@@ -188,7 +188,7 @@ function(bare_module_target directory result)
 
   string(JSON version GET "${package}" "version")
 
-  string(SHA256 hash "${package_path}")
+  string(SHA256 hash "bare ${package_path}")
 
   string(SUBSTRING "${hash}" 0 8 hash)
 
@@ -476,10 +476,20 @@ function(link_bare_modules receiver)
 endfunction()
 
 function(bare_include_directories result)
+  cmake_parse_arguments(
+    PARSE_ARGV 1 ARGV "NAPI" "" ""
+  )
+
+  if(ARGV_NAPI)
+    set(type napi)
+  else()
+    set(type bare)
+  endif()
+
   find_bare_script_interpreter(script_interpreter)
 
   execute_process(
-    COMMAND ${script_interpreter} "${bare_module_dir}/include-directories.js"
+    COMMAND ${script_interpreter} "${bare_module_dir}/include-directories.js" ${type}
     OUTPUT_VARIABLE include_directories
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )

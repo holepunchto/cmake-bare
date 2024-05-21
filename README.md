@@ -24,7 +24,7 @@
 
 #### `link_bare_modules(<receiver> [AMALGAMATE [EXCLUDE <target...>] [RUNTIME_LIBRARIES <target...>]])`
 
-#### `bare_include_directories(<result>)`
+#### `bare_include_directories(<result> [NAPI])`
 
 #### `add_bare_bundle(ENTRY <path> OUT <path> [CONFIG <path>] [FORMAT BUNDLE|JS] [TARGET JS|C] [NAME <string>] [WORKING_DIRECTORY <path>] [DEPENDS <path...>])`
 
