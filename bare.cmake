@@ -7,7 +7,7 @@ set(BARE_SCRIPT_INTERPRETER_ARGS "" CACHE STRING "Arguments to pass to the scrip
 set(bare_module_dir "${CMAKE_CURRENT_LIST_DIR}")
 
 function(find_bare result)
-  if(WIN32)
+  if(CMAKE_HOST_WIN32)
     find_program(
       bare_bin
       NAMES bare.cmd bare
@@ -44,7 +44,7 @@ function(find_bare_dev result)
     list(APPEND hints "${bin}")
   endif()
 
-  if(WIN32)
+  if(CMAKE_HOST_WIN32)
     find_program(
       bare_dev
       NAMES bare-dev.cmd bare-dev
@@ -66,7 +66,7 @@ function(find_bare_dev result)
 endfunction()
 
 function(find_bare_script_interpreter result)
-  if(WIN32)
+  if(CMAKE_HOST_WIN32)
     find_program(
       script_interpreter
       NAMES "${BARE_SCRIPT_INTERPRETER}.cmd" "${BARE_SCRIPT_INTERPRETER}"
