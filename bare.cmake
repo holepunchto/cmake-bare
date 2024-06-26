@@ -578,6 +578,16 @@ function(add_bare_bundle)
     DEPFILE "${ARGV_OUT}.d"
     VERBATIM
   )
+
+  if(DEFINED ARGV_UNPARSED_ARGUMENTS)
+    list(POP_FRONT ARGV_UNPARSED_ARGUMENTS target)
+
+    add_custom_target(
+      ${target}
+      ALL
+      DEPENDS "${ARGV_OUT}"
+    )
+  endif()
 endfunction()
 
 function(mirror_drive)
