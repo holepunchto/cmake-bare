@@ -230,6 +230,12 @@ function(add_bare_module result)
       ${includes}
   )
 
+  set(${result} ${target})
+
+  if(IOS OR ANDROID)
+    return(PROPAGATE ${result})
+  endif()
+
   if(TARGET bare_bin)
     add_executable(${target}_import_lib ALIAS bare_bin)
   else()
@@ -299,8 +305,6 @@ function(add_bare_module result)
     PRIVATE
       ${target}_import_lib
   )
-
-  set(${result} ${target})
 
   return(PROPAGATE ${result})
 endfunction()
