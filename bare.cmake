@@ -590,6 +590,40 @@ function(add_bare_bundle)
   endif()
 endfunction()
 
+function(import_bare_dependencies)
+  bare_include_directories(includes)
+
+  if(NOT TARGET uv)
+    add_library(uv INTERFACE IMPORTED)
+
+    target_include_directories(
+      uv
+      INTERFACE
+        ${includes}
+    )
+  endif()
+
+  if(NOT TARGET js)
+    add_library(js INTERFACE IMPORTED)
+
+    target_include_directories(
+      js
+      INTERFACE
+        ${includes}
+    )
+  endif()
+
+  if(NOT TARGET utf)
+    add_library(utf INTERFACE IMPORTED)
+
+    target_include_directories(
+      utf
+      INTERFACE
+        ${includes}
+    )
+  endif()
+endfunction()
+
 function(mirror_drive)
   cmake_parse_arguments(
     PARSE_ARGV 0 ARGV "" "SOURCE;DESTINATION;PREFIX;CHECKOUT;WORKING_DIRECTORY" ""
@@ -633,3 +667,7 @@ function(mirror_drive)
     "${output}"
   )
 endfunction()
+
+if(NOT CMAKE_PROJECT_NAME STREQUAL "bare")
+  import_bare_dependencies()
+endif()
