@@ -593,35 +593,23 @@ endfunction()
 function(import_bare_dependencies)
   bare_include_directories(includes)
 
-  if(NOT TARGET uv)
-    add_library(uv INTERFACE IMPORTED)
+  list(APPEND targets
+    uv
+    uv_a
+    js
+    napi
+    utf
+  )
+
+  foreach(target ${targets})
+    add_library(${target} INTERFACE IMPORTED)
 
     target_include_directories(
-      uv
+      ${target}
       INTERFACE
         ${includes}
     )
-  endif()
-
-  if(NOT TARGET js)
-    add_library(js INTERFACE IMPORTED)
-
-    target_include_directories(
-      js
-      INTERFACE
-        ${includes}
-    )
-  endif()
-
-  if(NOT TARGET utf)
-    add_library(utf INTERFACE IMPORTED)
-
-    target_include_directories(
-      utf
-      INTERFACE
-        ${includes}
-    )
-  endif()
+  endforeach()
 endfunction()
 
 function(mirror_drive)
