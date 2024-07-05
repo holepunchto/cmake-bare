@@ -602,13 +602,15 @@ function(import_bare_dependencies)
   )
 
   foreach(target ${targets})
-    add_library(${target} INTERFACE IMPORTED)
+    if(NOT TARGET ${target})
+      add_library(${target} INTERFACE IMPORTED)
 
-    target_include_directories(
-      ${target}
-      INTERFACE
-        ${includes}
-    )
+      target_include_directories(
+        ${target}
+        INTERFACE
+          ${includes}
+      )
+    endif()
   endforeach()
 endfunction()
 
@@ -655,7 +657,3 @@ function(mirror_drive)
     "${output}"
   )
 endfunction()
-
-if(NOT CMAKE_PROJECT_NAME STREQUAL "bare")
-  import_bare_dependencies()
-endif()
