@@ -21,12 +21,7 @@ function(find_bare result)
     )
   endif()
 
-  execute_process(
-    COMMAND "${bare_bin}" -p "Bare.argv[0]"
-    OUTPUT_VARIABLE bare
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    COMMAND_ERROR_IS_FATAL ANY
-  )
+  get_filename_component(bare "${bare_bin}" REALPATH)
 
   set(${result} "${bare}")
 
