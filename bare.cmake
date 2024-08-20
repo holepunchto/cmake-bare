@@ -122,7 +122,7 @@ function(download_bare result)
     cmake_path(APPEND output bin bare.exe OUTPUT_VARIABLE ${result})
 
     if(import_file)
-      cmake_path(APPEND output lib bare.lib OUTPUT_VARIABLE ${lib})
+      cmake_path(APPEND output lib bare.lib OUTPUT_VARIABLE ${import_file})
     endif()
   else()
     cmake_path(APPEND output bin bare OUTPUT_VARIABLE ${result})
