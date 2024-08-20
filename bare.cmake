@@ -90,7 +90,7 @@ endfunction()
 
 function(download_bare result)
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "" "DESTINATION;LIB;VERSION" ""
+    PARSE_ARGV 1 ARGV "" "DESTINATION;IMPORT_FILE;VERSION" ""
   )
 
   if(NOT ARGV_DESTINATION)
@@ -116,19 +116,19 @@ function(download_bare result)
     WORKING_DIRECTORY "${ARGV_DESTINATION}"
   )
 
-  set(lib ${ARGV_LIB})
+  set(import_file ${ARGV_IMPORT_FILE})
 
   if(target MATCHES "win32")
     cmake_path(APPEND output bin bare.exe OUTPUT_VARIABLE ${result})
 
-    if(lib)
+    if(import_file)
       cmake_path(APPEND output lib bare.lib OUTPUT_VARIABLE ${lib})
     endif()
   else()
     cmake_path(APPEND output bin bare OUTPUT_VARIABLE ${result})
   endif()
 
-  return(PROPAGATE ${result} ${lib})
+  return(PROPAGATE ${result} ${import_file})
 endfunction()
 
 function(download_bare_headers result)
@@ -281,7 +281,7 @@ function(bare_module_target directory result)
 endfunction()
 
 function(add_bare_module result)
-  download_bare(bare LIB bare_lib)
+  download_bare(bare_bin IMPORT_FILE bare_lib)
 
   download_bare_headers(bare_headers)
 
@@ -311,14 +311,14 @@ function(add_bare_module result)
     ${target}_import_lib
     PROPERTIES
     ENABLE_EXPORTS ON
-    IMPORTED_LOCATION "${bare}"
+    IMPORTED_LOCATION "${bare_bin}"
   )
 
   if(ANDROID)
     target_link_libraries(
       ${target}_import_lib
       INTERFACE
-        ${bare}
+        ${bare_bin}
     )
   endif()
 
@@ -329,10 +329,12 @@ function(add_bare_module result)
       IMPORTED_IMPLIB "${bare_lib}"
     )
 
+    cmake_path(GET bare_bin FILENAME bare_delay_load)
+
     target_link_options(
       ${target}_import_lib
       INTERFACE
-        /DELAYLOAD:bare.exe
+        /DELAYLOAD:${bare_relay_load}
     )
   endif()
 
