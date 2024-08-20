@@ -1,3 +1,5 @@
+include_guard(GLOBAL)
+
 include(npm)
 
 set(BARE_SCRIPT_INTERPRETER "node" CACHE STRING "The script interpreter to use")
@@ -82,6 +84,80 @@ function(find_bare_script_interpreter result)
   endif()
 
   set(${result} "${script_interpreter}")
+
+  return(PROPAGATE ${result})
+endfunction()
+
+function(download_bare result)
+  cmake_parse_arguments(
+    PARSE_ARGV 1 ARGV "" "DESTINATION;LIB;VERSION" ""
+  )
+
+  if(NOT ARGV_DESTINATION)
+    set(ARGV_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+  endif()
+
+  if(NOT ARGV_VERSION)
+    set(ARGV_VERSION "latest")
+  endif()
+
+  bare_target(target)
+
+  install_node_module(
+    bare-runtime-${target}
+    VERSION ${ARGV_VERSION}
+    PREFIX "${ARGV_DESTINATION}"
+    FORCE
+  )
+
+  resolve_node_module(
+    bare-runtime-${target}
+    output
+    WORKING_DIRECTORY "${ARGV_DESTINATION}"
+  )
+
+  set(lib ${ARGV_LIB})
+
+  if(target MATCHES "win32")
+    cmake_path(APPEND output bin bare.exe OUTPUT_VARIABLE ${result})
+
+    if(lib)
+      cmake_path(APPEND output lib bare.lib OUTPUT_VARIABLE ${lib})
+    endif()
+  else()
+    cmake_path(APPEND output bin bare OUTPUT_VARIABLE ${result})
+  endif()
+
+  return(PROPAGATE ${result} ${lib})
+endfunction()
+
+function(download_bare_headers result)
+  cmake_parse_arguments(
+    PARSE_ARGV 1 ARGV "" "DESTINATION;VERSION" ""
+  )
+
+  if(NOT ARGV_DESTINATION)
+    set(ARGV_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+  endif()
+
+  if(NOT ARGV_VERSION)
+    set(ARGV_VERSION "latest")
+  endif()
+
+  install_node_module(
+    bare-headers
+    VERSION ${ARGV_VERSION}
+    PREFIX "${ARGV_DESTINATION}"
+    FORCE
+  )
+
+  resolve_node_module(
+    bare-headers
+    output
+    WORKING_DIRECTORY "${ARGV_DESTINATION}"
+  )
+
+  cmake_path(APPEND output include OUTPUT_VARIABLE ${result})
 
   return(PROPAGATE ${result})
 endfunction()
@@ -205,9 +281,11 @@ function(bare_module_target directory result)
 endfunction()
 
 function(add_bare_module result)
-  bare_module_target("." target NAME name)
+  download_bare(bare LIB bare_lib)
 
-  bare_include_directories(includes)
+  download_bare_headers(bare_headers)
+
+  bare_module_target("." target NAME name)
 
   add_library(${target} OBJECT)
 
@@ -222,53 +300,40 @@ function(add_bare_module result)
   target_include_directories(
     ${target}
     PRIVATE
-      ${includes}
+      ${bare_headers}
   )
 
   set(${result} ${target})
 
-  if(IOS OR ANDROID)
-    return(PROPAGATE ${result})
+  add_executable(${target}_import_lib IMPORTED)
+
+  set_target_properties(
+    ${target}_import_lib
+    PROPERTIES
+    ENABLE_EXPORTS ON
+    IMPORTED_LOCATION "${bare}"
+  )
+
+  if(ANDROID)
+    target_link_libraries(
+      ${target}_import_lib
+      INTERFACE
+        ${bare}
+    )
   endif()
 
-  if(TARGET bare_bin)
-    add_executable(${target}_import_lib ALIAS bare_bin)
-  else()
-    find_bare(bare)
-
-    add_executable(${target}_import_lib IMPORTED)
-
+  if(MSVC)
     set_target_properties(
       ${target}_import_lib
       PROPERTIES
-      ENABLE_EXPORTS ON
-      IMPORTED_LOCATION "${bare}"
+      IMPORTED_IMPLIB "${bare_lib}"
     )
 
-    if(MSVC)
-      cmake_path(GET bare PARENT_PATH root)
-      cmake_path(GET root PARENT_PATH root)
-
-      cmake_path(APPEND root "lib" OUTPUT_VARIABLE lib)
-
-      find_library(
-        bare_lib
-        NAMES bare
-        HINTS "${lib}"
-      )
-
-      set_target_properties(
-        ${target}_import_lib
-        PROPERTIES
-        IMPORTED_IMPLIB "${bare_lib}"
-      )
-
-      target_link_options(
-        ${target}_import_lib
-        INTERFACE
-          /DELAYLOAD:bare.exe
-      )
-    endif()
+    target_link_options(
+      ${target}_import_lib
+      INTERFACE
+        /DELAYLOAD:bare.exe
+    )
   endif()
 
   add_library(${target}_module MODULE)
