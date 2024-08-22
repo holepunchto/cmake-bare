@@ -23,8 +23,6 @@ function(find_bare result)
     )
   endif()
 
-  get_filename_component(bare "${bare_bin}" REALPATH)
-
   set(${result} "${bare}")
 
   return(PROPAGATE ${result})
@@ -567,7 +565,7 @@ endfunction()
 
 function(add_bare_bundle)
   cmake_parse_arguments(
-    PARSE_ARGV 0 ARGV "" "ENTRY;OUT;CONFIG;FORMAT;TARGET;NAME;WORKING_DIRECTORY" "DEPENDS"
+    PARSE_ARGV 0 ARGV "PREBUILDS" "ENTRY;OUT;CONFIG;FORMAT;TARGET;NAME;WORKING_DIRECTORY" "DEPENDS"
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -604,6 +602,24 @@ function(add_bare_bundle)
 
   if(ARGV_NAME)
     list(APPEND args_bundle --name ${ARGV_NAME})
+  endif()
+
+  bare_platform(platform)
+
+  list(APPEND args_bundle --platform ${platform})
+
+  bare_arch(arch)
+
+  list(APPEND args_bundle --arch ${arch})
+
+  bare_simulator(simulator)
+
+  if(simulator)
+    list(APPEND args_bundle --simulator)
+  endif()
+
+  if(ARGV_PREBUILDS)
+    list(APPEND args_bundle --prebuilds)
   endif()
 
   cmake_path(ABSOLUTE_PATH ARGV_OUT BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" NORMALIZE)
