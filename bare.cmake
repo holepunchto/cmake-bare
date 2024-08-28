@@ -31,6 +31,8 @@ endfunction()
 function(find_bare_dev result)
   resolve_node_module(bare-dev resolved)
 
+  set(hints)
+
   if(NOT resolved MATCHES "NOTFOUND")
     cmake_path(GET resolved PARENT_PATH node_modules)
 
@@ -465,7 +467,7 @@ function(link_bare_module receiver specifier)
 
       get_target_property(sources ${receiver} SOURCES)
 
-      list(APPEND seen ${ARGV_EXCLUDE} ${ARGV_RUNTIME_LIBRARIES})
+      set(seen ${ARGV_EXCLUDE} ${ARGV_RUNTIME_LIBRARIES})
 
       while(length GREATER 0)
         list(POP_FRONT queue dependency)
@@ -513,6 +515,8 @@ function(link_bare_modules receiver)
     packages ${DEVELOPMENT}
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
+
+  set(args WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}")
 
   if(ARGV_AMALGAMATE)
     list(APPEND args AMALGAMATE)
@@ -574,7 +578,7 @@ function(add_bare_bundle)
     set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
   endif()
 
-  list(APPEND args --cwd "${ARGV_WORKING_DIRECTORY}")
+  set(args --cwd "${ARGV_WORKING_DIRECTORY}")
 
   if(ARGV_CONFIG)
     cmake_path(ABSOLUTE_PATH ARGV_CONFIG BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" NORMALIZE)
@@ -584,9 +588,9 @@ function(add_bare_bundle)
     list(APPEND ARGV_DEPENDS "${ARGV_CONFIG}")
   endif()
 
-  list(APPEND args_bundle ${args})
+  set(args_bundle ${args})
 
-  list(APPEND args_dependencies ${args})
+  set(args_dependencies ${args})
 
   if(ARGV_FORMAT)
     string(TOLOWER ${ARGV_FORMAT} ARGV_FORMAT)
@@ -671,7 +675,7 @@ endfunction()
 function(import_bare_dependencies)
   bare_include_directories(includes)
 
-  list(APPEND targets
+  set(targets
     uv
     uv_a
     js
@@ -711,7 +715,7 @@ function(mirror_drive)
     set(ARGV_CHECKOUT 0)
   endif()
 
-  list(APPEND args
+  set(args
     "${ARGV_WORKING_DIRECTORY}"
     "${ARGV_PREFIX}"
     "${ARGV_CHECKOUT}"
