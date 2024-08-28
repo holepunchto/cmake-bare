@@ -187,6 +187,8 @@ function(bare_arch result)
     set(arch ${CMAKE_OSX_ARCHITECTURES})
   elseif(MSVC AND CMAKE_GENERATOR_PLATFORM)
     set(arch ${CMAKE_GENERATOR_PLATFORM})
+  elseif(ANDROID AND CMAKE_ANDROID_ARCH_ABI)
+    set(arch ${CMAKE_ANDROID_ARCH_ABI})
   else()
     set(arch ${CMAKE_SYSTEM_PROCESSOR})
   endif()
@@ -199,7 +201,7 @@ function(bare_arch result)
 
   if(arch MATCHES "arm64|aarch64")
     set(${result} "arm64")
-  elseif(arch MATCHES "armv7-a")
+  elseif(arch MATCHES "armv7-a|armeabi-v7a")
     set(${result} "arm")
   elseif(arch MATCHES "x64|x86_64|amd64")
     set(${result} "x64")
@@ -314,14 +316,6 @@ function(add_bare_module result)
     IMPORTED_LOCATION "${bare_bin}"
   )
 
-  if(ANDROID)
-    target_link_libraries(
-      ${target}_import_lib
-      INTERFACE
-        ${bare_bin}
-    )
-  endif()
-
   if(MSVC)
     set_target_properties(
       ${target}_import_lib
@@ -373,13 +367,27 @@ endfunction()
 
 function(include_bare_module specifier result)
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "" "WORKING_DIRECTORY" ""
+    PARSE_ARGV 2 ARGV "PREBUILDS" "DESTINATION;PREFIX;SUFFIX;WORKING_DIRECTORY" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
     cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)
   else()
     set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
+  endif()
+
+  if(ARGV_DESTINATION)
+    cmake_path(ABSOLUTE_PATH ARGV_DESTINATION BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" NORMALIZE)
+  else()
+    set(ARGV_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+  endif()
+
+  if(NOT ARGV_PREFIX)
+    set(ARGV_PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})
+  endif()
+
+  if(NOT ARGV_SUFFIX)
+    set(ARGV_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
   endif()
 
   resolve_node_module(
@@ -395,32 +403,63 @@ function(include_bare_module specifier result)
 
   string(JSON version GET "${package}" "version")
 
-  cmake_path(RELATIVE_PATH source_dir BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" OUTPUT_VARIABLE binary_dir)
+  if(ARGV_PREBUILDS)
+    bare_target(host)
 
-  add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)
+    cmake_path(APPEND source_dir prebuilds ${host} OUTPUT_VARIABLE prebuilds_dir)
 
-  string(MAKE_C_IDENTIFIER ${name} id)
+    if(host MATCHES "darwin|ios")
+      set(prebuild "lib${name}.${version}.dylib")
+    elseif(host MATCHES "linux|android")
+      set(prebuild "lib${name}.${version}.so")
+    elseif(host MATCHES "win32")
+      set(prebuild "${name}-${version}.dll")
+    else()
+      message(FATAL_ERROR "Unsupported prebuild host '${host}'")
+    endif()
 
-  string(
-    RANDOM
-    LENGTH 8
-    ALPHABET "ybndrfg8ejkmcpqxot1uwisza345h769" # z-base-32
-    constructor
-  )
+    cmake_path(APPEND ARGV_DESTINATION "${prebuild}" OUTPUT_VARIABLE prebuild)
 
-  target_compile_definitions(
-    ${target}
-    PRIVATE
-      BARE_MODULE_FILENAME="${name}@${version}"
-      BARE_MODULE_REGISTER_CONSTRUCTOR
-      BARE_MODULE_CONSTRUCTOR_VERSION=${constructor}
+    file(MAKE_DIRECTORY "${ARGV_DESTINATION}")
 
-      NAPI_MODULE_FILENAME="${name}@${version}"
-      NAPI_MODULE_REGISTER_CONSTRUCTOR
-      NAPI_MODULE_CONSTRUCTOR_VERSION=${constructor}
+    file(COPY_FILE "${prebuilds_dir}/${name}.bare" "${prebuild}")
 
-      NODE_GYP_MODULE_NAME=${id}
-  )
+    add_library(${target} SHARED IMPORTED)
+
+    set_target_properties(
+      ${target}
+      PROPERTIES
+      IMPORTED_LOCATION "${prebuild}"
+      IMPORTED_NO_SONAME ON
+    )
+  else()
+    cmake_path(RELATIVE_PATH source_dir BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" OUTPUT_VARIABLE binary_dir)
+
+    add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)
+
+    string(MAKE_C_IDENTIFIER ${name} id)
+
+    string(
+      RANDOM
+      LENGTH 8
+      ALPHABET "ybndrfg8ejkmcpqxot1uwisza345h769" # z-base-32
+      constructor
+    )
+
+    target_compile_definitions(
+      ${target}
+      PRIVATE
+        BARE_MODULE_FILENAME="${name}@${version}"
+        BARE_MODULE_REGISTER_CONSTRUCTOR
+        BARE_MODULE_CONSTRUCTOR_VERSION=${constructor}
+
+        NAPI_MODULE_FILENAME="${name}@${version}"
+        NAPI_MODULE_REGISTER_CONSTRUCTOR
+        NAPI_MODULE_CONSTRUCTOR_VERSION=${constructor}
+
+        NODE_GYP_MODULE_NAME=${id}
+    )
+  endif()
 
   set(${result} ${target})
 
@@ -429,7 +468,7 @@ endfunction()
 
 function(link_bare_module receiver specifier)
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "AMALGAMATE" "WORKING_DIRECTORY" "EXCLUDE;RUNTIME_LIBRARIES"
+    PARSE_ARGV 2 ARGV "AMALGAMATE;PREBUILDS" "DESTINATION;WORKING_DIRECTORY" "EXCLUDE;RUNTIME_LIBRARIES"
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -438,16 +477,29 @@ function(link_bare_module receiver specifier)
     set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
   endif()
 
+  set(args)
+
+  if(ARGV_PREBUILDS)
+    list(APPEND args PREBUILDS)
+  endif()
+
+  if(ARGV_DESTINATION)
+    list(APPEND args DESTINATION "${ARGV_DESTINATION}")
+  endif()
+
   include_bare_module(
     ${specifier} target
+    ${args}
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
-  target_sources(
-    ${receiver}
-    PUBLIC
-      $<TARGET_OBJECTS:${target}>
-  )
+  if(NOT ARGV_PREBUILDS)
+    target_sources(
+      ${receiver}
+      PUBLIC
+        $<TARGET_OBJECTS:${target}>
+    )
+  endif()
 
   target_link_libraries(
     ${receiver}
@@ -498,7 +550,7 @@ endfunction()
 
 function(link_bare_modules receiver)
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "DEVELOPMENT;AMALGAMATE" "WORKING_DIRECTORY" "EXCLUDE;RUNTIME_LIBRARIES"
+    PARSE_ARGV 1 ARGV "DEVELOPMENT;AMALGAMATE;PREBUILDS" "DESTINATION;WORKING_DIRECTORY" "EXCLUDE;RUNTIME_LIBRARIES"
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -528,6 +580,14 @@ function(link_bare_modules receiver)
     if(DEFINED ARGV_RUNTIME_LIBRARIES)
       list(APPEND args RUNTIME_LIBRARIES ${ARGV_RUNTIME_LIBRARIES})
     endif()
+  endif()
+
+  if(ARGV_PREBUILDS)
+    list(APPEND args PREBUILDS)
+  endif()
+
+  if(ARGV_DESTINATION)
+    list(APPEND args DESTINATION "${ARGV_DESTINATION}")
   endif()
 
   foreach(base ${packages})
