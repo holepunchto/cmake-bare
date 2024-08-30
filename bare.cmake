@@ -328,7 +328,7 @@ function(add_bare_module result)
     target_link_options(
       ${target}_import_lib
       INTERFACE
-        /DELAYLOAD:${bare_relay_load}
+        /DELAYLOAD:${bare_delay_load}
     )
   endif()
 
