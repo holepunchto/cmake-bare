@@ -316,7 +316,7 @@ function(add_bare_module result)
     IMPORTED_LOCATION "${bare_bin}"
   )
 
-  if(MSVC)
+  if(host MATCHES "win32")
     set_target_properties(
       ${target}_import_lib
       PROPERTIES
@@ -332,7 +332,15 @@ function(add_bare_module result)
     )
   endif()
 
-  add_library(${target}_module MODULE)
+  bare_target(host)
+
+  if(host MATCHES "ios|android")
+    set(type SHARED)
+  else()
+    set(type MODULE)
+  endif()
+
+  add_library(${target}_module ${type})
 
   set_target_properties(
     ${target}_module
@@ -346,11 +354,19 @@ function(add_bare_module result)
     WINDOWS_EXPORT_ALL_SYMBOLS ON
   )
 
-  if(MSVC)
+  if(host MATCHES "win32")
     target_sources(
       ${target}_module
       PRIVATE
         "${bare_module_dir}/win32/delay-load.c"
+    )
+  endif()
+
+  if(host MATCHES "ios|android")
+    target_link_options(
+      ${target}_module
+      PRIVATE
+        -Wl,-undefined,dynamic_lookup
     )
   endif()
 
