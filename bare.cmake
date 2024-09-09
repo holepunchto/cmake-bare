@@ -126,6 +126,14 @@ function(download_bare result)
     endif()
   else()
     cmake_path(APPEND output bin bare OUTPUT_VARIABLE ${result})
+
+    if(import_file)
+      if(target MATCHES "darwin|ios")
+        cmake_path(APPEND output lib libbare.tbd OUTPUT_VARIABLE ${import_file})
+      else()
+        set(${import_file} ${import_file}-NOTFOUND)
+      endif()
+    endif()
   endif()
 
   return(PROPAGATE ${result} ${import_file})
@@ -307,6 +315,8 @@ function(add_bare_module result)
 
   set(${result} ${target})
 
+  bare_target(host)
+
   add_executable(${target}_import_lib IMPORTED)
 
   set_target_properties(
@@ -314,33 +324,10 @@ function(add_bare_module result)
     PROPERTIES
     ENABLE_EXPORTS ON
     IMPORTED_LOCATION "${bare_bin}"
+    IMPORTED_IMPLIB "${bare_lib}"
   )
 
-  if(host MATCHES "win32")
-    set_target_properties(
-      ${target}_import_lib
-      PROPERTIES
-      IMPORTED_IMPLIB "${bare_lib}"
-    )
-
-    cmake_path(GET bare_bin FILENAME bare_delay_load)
-
-    target_link_options(
-      ${target}_import_lib
-      INTERFACE
-        /DELAYLOAD:${bare_delay_load}
-    )
-  endif()
-
-  bare_target(host)
-
-  if(host MATCHES "ios|android")
-    set(type SHARED)
-  else()
-    set(type MODULE)
-  endif()
-
-  add_library(${target}_module ${type})
+  add_library(${target}_module SHARED)
 
   set_target_properties(
     ${target}_module
@@ -355,14 +342,20 @@ function(add_bare_module result)
   )
 
   if(host MATCHES "win32")
+    cmake_path(GET bare_bin FILENAME bare_delay_load)
+
+    target_link_options(
+      ${target}_module
+      PRIVATE
+        /DELAYLOAD:${bare_delay_load}
+    )
+
     target_sources(
       ${target}_module
       PRIVATE
         "${bare_module_dir}/win32/delay-load.c"
     )
-  endif()
-
-  if(host MATCHES "ios|android")
+  else()
     target_link_options(
       ${target}_module
       PRIVATE
