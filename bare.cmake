@@ -741,30 +741,6 @@ function(add_bare_bundle)
   endif()
 endfunction()
 
-function(import_bare_dependencies)
-  bare_include_directories(includes)
-
-  set(targets
-    uv
-    uv_a
-    js
-    napi
-    utf
-  )
-
-  foreach(target ${targets})
-    if(NOT TARGET ${target})
-      add_library(${target} INTERFACE IMPORTED)
-
-      target_include_directories(
-        ${target}
-        INTERFACE
-          ${includes}
-      )
-    endif()
-  endforeach()
-endfunction()
-
 function(mirror_drive)
   cmake_parse_arguments(
     PARSE_ARGV 0 ARGV "" "SOURCE;DESTINATION;PREFIX;CHECKOUT;WORKING_DIRECTORY" ""
