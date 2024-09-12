@@ -336,6 +336,10 @@ function(add_bare_module result)
     PREFIX ""
     SUFFIX ".bare"
 
+    # Don't set a shared library name to allow loading the resulting library as
+    # a plugin.
+    NO_SONAME ON
+
     # Automatically export all available symbols on Windows. Without this,
     # module authors would have to explicitly export public symbols.
     WINDOWS_EXPORT_ALL_SYMBOLS ON
