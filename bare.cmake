@@ -642,7 +642,7 @@ endfunction()
 
 function(add_bare_bundle)
   cmake_parse_arguments(
-    PARSE_ARGV 0 ARGV "PREBUILDS" "ENTRY;OUT;CONFIG;FORMAT;TARGET;NAME;WORKING_DIRECTORY" "DEPENDS"
+    PARSE_ARGV 0 ARGV "PREBUILDS" "ENTRY;OUT;CONFIG;FORMAT;WORKING_DIRECTORY" "DEPENDS"
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -669,16 +669,6 @@ function(add_bare_bundle)
     string(TOLOWER ${ARGV_FORMAT} ARGV_FORMAT)
 
     list(APPEND args_bundle --format ${ARGV_FORMAT})
-  endif()
-
-  if(ARGV_TARGET)
-    string(TOLOWER ${ARGV_TARGET} ARGV_TARGET)
-
-    list(APPEND args_bundle --target ${ARGV_TARGET})
-  endif()
-
-  if(ARGV_NAME)
-    list(APPEND args_bundle --name ${ARGV_NAME})
   endif()
 
   bare_platform(platform)
