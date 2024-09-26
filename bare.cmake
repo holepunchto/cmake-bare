@@ -1,6 +1,6 @@
 include_guard(GLOBAL)
 
-include(npm)
+find_package(npm REQUIRED PATHS node_modules/cmake-npm)
 
 set(BARE_SCRIPT_INTERPRETER "node" CACHE STRING "The script interpreter to use")
 

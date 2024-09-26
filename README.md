@@ -1,5 +1,13 @@
 # cmake-bare
 
+```
+npm i cmake-bare
+```
+
+```cmake
+find_package(bare REQUIRED PATHS node_modules/cmake-bare)
+```
+
 ## API
 
 #### `find_bare(<result>)`

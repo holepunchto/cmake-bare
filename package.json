@@ -1,0 +1,23 @@
+{
+  "name": "cmake-bare",
+  "version": "1.0.0",
+  "description": "Bare utilities for CMake",
+  "files": [
+    "*.cmake",
+    "*.js",
+    "win32/*.c"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/holepunchto/cmake-bare.git"
+  },
+  "author": "Holepunch",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/holepunchto/cmake-bare/issues"
+  },
+  "homepage": "https://github.com/holepunchto/cmake-bare#readme",
+  "dependencies": {
+    "bare-dev": "^0.14.5"
+  }
+}
