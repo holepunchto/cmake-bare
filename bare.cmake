@@ -1,4 +1,4 @@
-include_guard(GLOBAL)
+include_guard()
 
 find_package(npm REQUIRED PATHS node_modules/cmake-npm)
 
