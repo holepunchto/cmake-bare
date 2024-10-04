@@ -28,40 +28,6 @@ function(find_bare result)
   return(PROPAGATE ${result})
 endfunction()
 
-function(find_bare_dev result)
-  resolve_node_module(bare-dev resolved)
-
-  set(hints)
-
-  if(NOT resolved MATCHES "NOTFOUND")
-    cmake_path(GET resolved PARENT_PATH node_modules)
-
-    cmake_path(APPEND node_modules ".bin" OUTPUT_VARIABLE bin)
-
-    list(APPEND hints "${bin}")
-  endif()
-
-  if(CMAKE_HOST_WIN32)
-    find_program(
-      bare_dev
-      NAMES bare-dev.cmd bare-dev
-      HINTS ${hints}
-      REQUIRED
-    )
-  else()
-    find_program(
-      bare_dev
-      NAMES bare-dev
-      HINTS ${hints}
-      REQUIRED
-    )
-  endif()
-
-  set(${result} "${bare_dev}")
-
-  return(PROPAGATE ${result})
-endfunction()
-
 function(find_bare_script_interpreter result)
   if(CMAKE_HOST_WIN32)
     find_program(
@@ -616,33 +582,9 @@ function(link_bare_modules receiver)
   endforeach()
 endfunction()
 
-function(bare_include_directories result)
-  cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "NAPI" "" ""
-  )
-
-  if(ARGV_NAPI)
-    set(type napi)
-  else()
-    set(type bare)
-  endif()
-
-  find_bare_script_interpreter(script_interpreter)
-
-  execute_process(
-    COMMAND ${script_interpreter} "${bare_module_dir}/include-directories.js" ${type}
-    OUTPUT_VARIABLE include_directories
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
-
-  list(APPEND ${result} "${include_directories}")
-
-  return(PROPAGATE ${result})
-endfunction()
-
 function(add_bare_bundle)
   cmake_parse_arguments(
-    PARSE_ARGV 0 ARGV "PREBUILDS" "ENTRY;OUT;CONFIG;FORMAT;WORKING_DIRECTORY" "DEPENDS"
+    PARSE_ARGV 0 ARGV "PREBUILDS;SIMULATOR" "ENTRY;OUT;CONFIG;FORMAT;PLATFORM;ARCH;WORKING_DIRECTORY" "DEPENDS"
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -651,64 +593,64 @@ function(add_bare_bundle)
     set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
   endif()
 
-  set(args --cwd "${ARGV_WORKING_DIRECTORY}")
-
   if(ARGV_CONFIG)
     cmake_path(ABSOLUTE_PATH ARGV_CONFIG BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" NORMALIZE)
 
-    list(APPEND args --config "${ARGV_CONFIG}")
-
     list(APPEND ARGV_DEPENDS "${ARGV_CONFIG}")
+  else()
+    set(ARGV_CONFIG "0")
   endif()
 
-  set(args_bundle ${args})
-
-  set(args_dependencies ${args})
-
-  if(ARGV_FORMAT)
+  if(DEFINED ARGV_FORMAT)
     string(TOLOWER ${ARGV_FORMAT} ARGV_FORMAT)
-
-    list(APPEND args_bundle --format ${ARGV_FORMAT})
+  else()
+    set(ARGV_FORMAT "0")
   endif()
 
-  bare_platform(platform)
-
-  list(APPEND args_bundle --platform ${platform})
-
-  bare_arch(arch)
-
-  list(APPEND args_bundle --arch ${arch})
-
-  bare_simulator(simulator)
-
-  if(simulator)
-    list(APPEND args_bundle --simulator)
+  if(ARGV_OUT)
+    cmake_path(ABSOLUTE_PATH ARGV_OUT BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" NORMALIZE)
+  else()
+    message(FATAL_ERROR "Argument OUT not provided")
   endif()
 
-  if(ARGV_PREBUILDS)
-    list(APPEND args_bundle --prebuilds)
+  if(ARGV_ENTRY)
+    cmake_path(ABSOLUTE_PATH ARGV_ENTRY BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" NORMALIZE)
+  else()
+    message(FATAL_ERROR "Argument ENTRY not provided")
   endif()
 
-  cmake_path(ABSOLUTE_PATH ARGV_OUT BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" NORMALIZE)
+  if(NOT DEFINED ARGV_PLATFORM)
+    bare_platform(ARGV_PLATFORM)
+  endif()
 
-  list(APPEND args_bundle --out "${ARGV_OUT}")
+  if(NOT DEFINED ARGV_ARCH)
+    bare_arch(ARGV_ARCH)
+  endif()
 
-  list(APPEND args_dependencies --out "${ARGV_OUT}.d")
-
-  cmake_path(ABSOLUTE_PATH ARGV_ENTRY BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" NORMALIZE)
+  if(NOT DEFINED ARGV_SIMULATOR)
+    bare_simulator(ARGV_SIMULATOR)
+  endif()
 
   list(APPEND ARGV_DEPENDS "${ARGV_ENTRY}")
 
-  list(APPEND args_bundle "${ARGV_ENTRY}")
-
-  list(APPEND args_dependencies "${ARGV_ENTRY}")
-
-  find_bare_dev(bare_dev)
-
   list(REMOVE_DUPLICATES ARGV_DEPENDS)
 
+  set(args
+    "${ARGV_WORKING_DIRECTORY}"
+    "${ARGV_CONFIG}"
+    "${ARGV_FORMAT}"
+    "$<BOOL:${ARGV_PREBUILDS}>"
+    "${ARGV_OUT}"
+    "${ARGV_ENTRY}"
+    "${ARGV_PLATFORM}"
+    "${ARGV_ARCH}"
+    "$<BOOL:${ARGV_SIMULATOR}>"
+  )
+
+  find_bare_script_interpreter(script_interpreter)
+
   add_custom_command(
-    COMMAND "${bare_dev}" dependencies ${args_dependencies}
+    COMMAND ${script_interpreter} "${bare_module_dir}/dependencies.js" ${args}
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
     OUTPUT "${ARGV_OUT}.d"
     DEPENDS ${ARGV_DEPENDS}
@@ -716,7 +658,7 @@ function(add_bare_bundle)
   )
 
   add_custom_command(
-    COMMAND "${bare_dev}" bundle ${args_bundle}
+    COMMAND ${script_interpreter} "${bare_module_dir}/bundle.js" ${args}
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
     OUTPUT "${ARGV_OUT}"
     DEPENDS "${ARGV_OUT}.d"

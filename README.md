@@ -12,8 +12,6 @@ find_package(bare REQUIRED PATHS node_modules/cmake-bare)
 
 #### `find_bare(<result>)`
 
-#### `find_bare_dev(<result>)`
-
 #### `bare_platform(<result>)`
 
 #### `bare_arch(<result>)`
@@ -31,8 +29,6 @@ find_package(bare REQUIRED PATHS node_modules/cmake-bare)
 #### `link_bare_module(<receiver> <specifier> [AMALGAMATE [EXCLUDE <target...>] [RUNTIME_LIBRARIES <target...>]])`
 
 #### `link_bare_modules(<receiver> [AMALGAMATE [EXCLUDE <target...>] [RUNTIME_LIBRARIES <target...>]])`
-
-#### `bare_include_directories(<result> [NAPI])`
 
 #### `add_bare_bundle([<target>] ENTRY <path> OUT <path> [CONFIG <path>] [FORMAT BUNDLE|JS] [TARGET JS|C] [NAME <string>] [WORKING_DIRECTORY <path>] [DEPENDS <path...>])`
 
