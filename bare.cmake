@@ -2,10 +2,6 @@ include_guard()
 
 find_package(npm REQUIRED PATHS node_modules/cmake-npm)
 
-set(BARE_SCRIPT_INTERPRETER "node" CACHE STRING "The script interpreter to use")
-
-set(BARE_SCRIPT_INTERPRETER_ARGS "" CACHE STRING "Arguments to pass to the script interpreter")
-
 set(bare_module_dir "${CMAKE_CURRENT_LIST_DIR}")
 
 function(find_bare result)
@@ -24,32 +20,6 @@ function(find_bare result)
   endif()
 
   set(${result} "${bare}")
-
-  return(PROPAGATE ${result})
-endfunction()
-
-function(find_bare_script_interpreter result)
-  if(CMAKE_HOST_WIN32)
-    find_program(
-      script_interpreter
-      NAMES "${BARE_SCRIPT_INTERPRETER}.cmd" "${BARE_SCRIPT_INTERPRETER}"
-      REQUIRED
-    )
-  else()
-    find_program(
-      script_interpreter
-      NAMES "${BARE_SCRIPT_INTERPRETER}"
-      REQUIRED
-    )
-  endif()
-
-  if(BARE_SCRIPT_INTERPRETER_ARGS)
-    separate_arguments(BARE_SCRIPT_INTERPRETER_ARGS)
-
-    set(script_interpreter ${script_interpreter} ${BARE_SCRIPT_INTERPRETER_ARGS})
-  endif()
-
-  set(${result} "${script_interpreter}")
 
   return(PROPAGATE ${result})
 endfunction()
@@ -647,10 +617,22 @@ function(add_bare_bundle)
     "$<BOOL:${ARGV_SIMULATOR}>"
   )
 
-  find_bare_script_interpreter(script_interpreter)
+  if(CMAKE_HOST_WIN32)
+    find_program(
+      node
+      NAMES node.cmd node
+      REQUIRED
+    )
+  else()
+    find_program(
+      node
+      NAMES node
+      REQUIRED
+    )
+  endif()
 
   add_custom_command(
-    COMMAND ${script_interpreter} "${bare_module_dir}/dependencies.js" ${args}
+    COMMAND "${node}" "${bare_module_dir}/dependencies.js" ${args}
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
     OUTPUT "${ARGV_OUT}.d"
     DEPENDS ${ARGV_DEPENDS}
@@ -658,7 +640,7 @@ function(add_bare_bundle)
   )
 
   add_custom_command(
-    COMMAND ${script_interpreter} "${bare_module_dir}/bundle.js" ${args}
+    COMMAND "${node}" "${bare_module_dir}/bundle.js" ${args}
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
     OUTPUT "${ARGV_OUT}"
     DEPENDS "${ARGV_OUT}.d"
