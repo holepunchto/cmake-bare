@@ -1,6 +1,6 @@
 include_guard()
 
-find_package(npm REQUIRED PATHS node_modules/cmake-npm)
+find_package(cmake-npm REQUIRED PATHS node_modules/cmake-npm)
 
 set(bare_module_dir "${CMAKE_CURRENT_LIST_DIR}")
 
