@@ -290,6 +290,12 @@ function(add_bare_module result)
         /DELAYLOAD:${bare_delay_load}
     )
 
+    target_link_libraries(
+      ${target}_module
+      PRIVATE
+        delayimp
+    )
+
     target_sources(
       ${target}_module
       PRIVATE
