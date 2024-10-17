@@ -317,6 +317,11 @@ function(add_bare_module result)
       ${target}_import_lib
   )
 
+  install(
+    TARGETS ${target}_module
+    RUNTIME DESTINATION ${host}
+  )
+
   return(PROPAGATE ${result})
 endfunction()
 
