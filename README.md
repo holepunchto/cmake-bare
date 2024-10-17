@@ -5,7 +5,7 @@ npm i cmake-bare
 ```
 
 ```cmake
-find_package(bare REQUIRED PATHS node_modules/cmake-bare)
+find_package(cmake-bare REQUIRED PATHS node_modules/cmake-bare)
 ```
 
 ## API
