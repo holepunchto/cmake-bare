@@ -282,12 +282,11 @@ function(add_bare_module result)
   )
 
   if(host MATCHES "win32")
-    cmake_path(GET bare_bin FILENAME bare_delay_load)
-
     target_link_options(
       ${target}_module
       PRIVATE
-        /DELAYLOAD:${bare_delay_load}
+        /DELAYLOAD:bare.exe
+        /DELAYLOAD:bare.dll
         /NOIMPLIB
     )
 

@@ -16,7 +16,7 @@ static FARPROC WINAPI
 bare_delay_load (unsigned event, PDelayLoadInfo info) {
   switch (event) {
   case dliNotePreLoadLibrary:
-    if (_stricmp(info->szDll, "bare.exe") == 0) {
+    if (_stricmp(info->szDll, "bare.exe") == 0 || _stricmp(info->szDll, "bare.dll") == 0) {
       return (FARPROC) GetModuleHandle(NULL);
     }
     break;
