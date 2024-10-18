@@ -288,6 +288,7 @@ function(add_bare_module result)
       ${target}_module
       PRIVATE
         /DELAYLOAD:${bare_delay_load}
+        /NOIMPLIB
     )
 
     target_link_libraries(
