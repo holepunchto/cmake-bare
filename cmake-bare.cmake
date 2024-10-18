@@ -4,26 +4,6 @@ find_package(cmake-npm REQUIRED PATHS node_modules/cmake-npm)
 
 set(bare_module_dir "${CMAKE_CURRENT_LIST_DIR}")
 
-function(find_bare result)
-  if(CMAKE_HOST_WIN32)
-    find_program(
-      bare_bin
-      NAMES bare.cmd bare
-      REQUIRED
-    )
-  else()
-    find_program(
-      bare_bin
-      NAMES bare
-      REQUIRED
-    )
-  endif()
-
-  set(${result} "${bare}")
-
-  return(PROPAGATE ${result})
-endfunction()
-
 function(download_bare result)
   cmake_parse_arguments(
     PARSE_ARGV 1 ARGV "" "DESTINATION;IMPORT_FILE;VERSION" ""

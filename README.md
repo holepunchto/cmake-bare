@@ -10,8 +10,6 @@ find_package(cmake-bare REQUIRED PATHS node_modules/cmake-bare)
 
 ## API
 
-#### `find_bare(<result>)`
-
 #### `bare_platform(<result>)`
 
 #### `bare_arch(<result>)`
