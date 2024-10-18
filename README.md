@@ -30,8 +30,6 @@ find_package(cmake-bare REQUIRED PATHS node_modules/cmake-bare)
 
 #### `link_bare_modules(<receiver> [AMALGAMATE [EXCLUDE <target...>] [RUNTIME_LIBRARIES <target...>]])`
 
-#### `add_bare_bundle([<target>] ENTRY <path> OUT <path> [CONFIG <path>] [FORMAT BUNDLE|JS] [TARGET JS|C] [NAME <string>] [WORKING_DIRECTORY <path>] [DEPENDS <path...>])`
-
 ## License
 
 Apache-2.0
