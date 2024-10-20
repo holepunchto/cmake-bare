@@ -334,6 +334,8 @@ function(include_bare_module specifier result)
 
   bare_module_target("${source_dir}" target)
 
+  set(${result} ${target})
+
   file(READ "${source_dir}/package.json" package)
 
   string(JSON name GET "${package}" "name")
@@ -369,6 +371,8 @@ function(include_bare_module specifier result)
       IMPORTED_LOCATION "${prebuild}"
       IMPORTED_NO_SONAME ON
     )
+  elseif(TARGET ${target})
+    return(PROPAGATE ${result})
   else()
     cmake_path(RELATIVE_PATH source_dir BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" OUTPUT_VARIABLE binary_dir)
 
@@ -397,8 +401,6 @@ function(include_bare_module specifier result)
         NODE_GYP_MODULE_NAME=${id}
     )
   endif()
-
-  set(${result} ${target})
 
   return(PROPAGATE ${result})
 endfunction()
