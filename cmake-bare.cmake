@@ -251,6 +251,8 @@ function(add_bare_module result)
     OUTPUT_NAME ${name}
     PREFIX ""
     SUFFIX ".bare"
+    IMPORT_PREFIX ""
+    IMPORT_SUFFIX ".bare.lib"
 
     # Don't set a shared library name to allow loading the resulting library as
     # a plugin.
