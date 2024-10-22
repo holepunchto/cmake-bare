@@ -299,12 +299,12 @@ function(add_bare_module result)
   if (host MATCHES "win32")
     install(
       TARGETS ${target}_module
-      RUNTIME DESTINATION ${host})
+      RUNTIME DESTINATION ${host}
     )
   else()
     install(
       TARGETS ${target}_module
-      LIBRARY DESTINATION ${host})
+      LIBRARY DESTINATION ${host}
     )
   endif()
 
