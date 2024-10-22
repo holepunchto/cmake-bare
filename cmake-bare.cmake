@@ -267,7 +267,6 @@ function(add_bare_module result)
       PRIVATE
         /DELAYLOAD:bare.exe
         /DELAYLOAD:bare.dll
-        /NOIMPLIB
     )
 
     target_link_libraries(
@@ -297,7 +296,17 @@ function(add_bare_module result)
       ${target}_import_lib
   )
 
-  install(TARGETS ${target}_module DESTINATION ${host})
+  if (host MATCHES "win32")
+    install(
+      TARGETS ${target}_module
+      RUNTIME DESTINATION ${host})
+    )
+  else()
+    install(
+      TARGETS ${target}_module
+      LIBRARY DESTINATION ${host})
+    )
+  endif()
 
   return(PROPAGATE ${result})
 endfunction()
