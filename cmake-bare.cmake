@@ -444,14 +444,6 @@ function(link_bare_module receiver specifier)
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
-  if(NOT ARGV_PREBUILDS)
-    target_sources(
-      ${receiver}
-      PUBLIC
-        $<TARGET_OBJECTS:${target}>
-    )
-  endif()
-
   target_link_libraries(
     ${receiver}
     PUBLIC
