@@ -419,7 +419,7 @@ endfunction()
 
 function(link_bare_module receiver specifier)
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "AMALGAMATE;PREBUILDS" "DESTINATION;WORKING_DIRECTORY" "EXCLUDE;RUNTIME_LIBRARIES"
+    PARSE_ARGV 2 ARGV "PREBUILDS" "DESTINATION;WORKING_DIRECTORY" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -461,47 +461,11 @@ function(link_bare_module receiver specifier)
   if(NOT DEFINED ARGV_RUNTIME_LIBRARIES)
     list(APPEND ARGV_RUNTIME_LIBRARIES uv uv_a napi mem utf url base64 hex)
   endif()
-
-  if(ARGV_AMALGAMATE)
-    get_target_property(queue ${target} LINK_LIBRARIES)
-
-    if(NOT "${queue}" MATCHES "NOTFOUND")
-      list(LENGTH queue length)
-
-      get_target_property(sources ${receiver} SOURCES)
-
-      set(seen ${ARGV_EXCLUDE} ${ARGV_RUNTIME_LIBRARIES})
-
-      while(length GREATER 0)
-        list(POP_FRONT queue dependency)
-
-        if(TARGET ${dependency} AND NOT ${dependency} IN_LIST seen)
-          list(APPEND seen ${dependency})
-
-          if(NOT $<TARGET_OBJECTS:${dependency}> IN_LIST sources)
-            target_sources(
-              ${receiver}
-              PUBLIC
-                $<TARGET_OBJECTS:${dependency}>
-            )
-          endif()
-
-          get_target_property(dependencies ${dependency} LINK_LIBRARIES)
-
-          if(NOT "${dependencies}" MATCHES "NOTFOUND")
-            list(APPEND queue ${dependencies})
-          endif()
-        endif()
-
-        list(LENGTH queue length)
-      endwhile()
-    endif()
-  endif()
 endfunction()
 
 function(link_bare_modules receiver)
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "DEVELOPMENT;AMALGAMATE;PREBUILDS" "DESTINATION;WORKING_DIRECTORY" "EXCLUDE;RUNTIME_LIBRARIES"
+    PARSE_ARGV 1 ARGV "PREBUILDS" "DESTINATION;WORKING_DIRECTORY" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -510,28 +474,12 @@ function(link_bare_modules receiver)
     set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
   endif()
 
-  if(ARGV_DEVELOPMENT)
-    set(DEVELOPMENT DEVELOPMENT)
-  endif()
-
   list_node_modules(
-    packages ${DEVELOPMENT}
+    packages
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
   set(args WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}")
-
-  if(ARGV_AMALGAMATE)
-    list(APPEND args AMALGAMATE)
-
-    if(DEFINED ARGV_EXCLUDE)
-      list(APPEND args EXCLUDE ${ARGV_EXCLUDE})
-    endif()
-
-    if(DEFINED ARGV_RUNTIME_LIBRARIES)
-      list(APPEND args RUNTIME_LIBRARIES ${ARGV_RUNTIME_LIBRARIES})
-    endif()
-  endif()
 
   if(ARGV_PREBUILDS)
     list(APPEND args PREBUILDS)

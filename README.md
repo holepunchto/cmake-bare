@@ -24,9 +24,9 @@ find_package(cmake-bare REQUIRED PATHS node_modules/cmake-bare)
 
 #### `include_bare_module(<specifier> <result>)`
 
-#### `link_bare_module(<receiver> <specifier> [AMALGAMATE [EXCLUDE <target...>] [RUNTIME_LIBRARIES <target...>]])`
+#### `link_bare_module(<receiver> <specifier>)`
 
-#### `link_bare_modules(<receiver> [AMALGAMATE [EXCLUDE <target...>] [RUNTIME_LIBRARIES <target...>]])`
+#### `link_bare_modules(<receiver>)`
 
 ## License
 
