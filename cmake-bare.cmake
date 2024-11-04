@@ -292,8 +292,6 @@ function(add_bare_module result)
 
   target_link_libraries(
     ${target}_module
-    PUBLIC
-      $<TARGET_PROPERTY:${target},INTERFACE_LINK_LIBRARIES>
     PRIVATE
       ${target}
       ${target}_import_library
