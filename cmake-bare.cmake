@@ -384,8 +384,6 @@ function(include_bare_module specifier result)
   elseif(TARGET ${target})
     return(PROPAGATE ${result})
   else()
-    install_node_modules(WORKING_DIRECTORY "${source_dir}")
-
     cmake_path(RELATIVE_PATH source_dir BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" OUTPUT_VARIABLE binary_dir)
 
     add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)
