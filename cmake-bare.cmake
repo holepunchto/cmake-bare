@@ -93,7 +93,7 @@ function(bare_platform result)
     set(platform ${CMAKE_HOST_SYSTEM_NAME})
   endif()
 
-  string(TOLOWER ${platform} platform)
+  string(TOLOWER "${platform}" platform)
 
   if(platform MATCHES "darwin|ios|linux|android")
     set(${result} ${platform})
@@ -121,7 +121,7 @@ function(bare_arch result)
     set(arch ${CMAKE_HOST_SYSTEM_PROCESSOR})
   endif()
 
-  string(TOLOWER ${arch} arch)
+  string(TOLOWER "${arch}" arch)
 
   if(arch MATCHES "arm64|aarch64")
     set(${result} "arm64")
