@@ -314,19 +314,13 @@ endfunction()
 
 function(include_bare_module specifier result)
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "PREBUILDS" "DESTINATION;PREFIX;SUFFIX;WORKING_DIRECTORY" ""
+    PARSE_ARGV 2 ARGV "PREBUILDS" "PREFIX;SUFFIX;WORKING_DIRECTORY" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
     cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)
   else()
     set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
-  endif()
-
-  if(ARGV_DESTINATION)
-    cmake_path(ABSOLUTE_PATH ARGV_DESTINATION BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" NORMALIZE)
-  else()
-    set(ARGV_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
   endif()
 
   if(NOT ARGV_PREFIX)
@@ -346,6 +340,10 @@ function(include_bare_module specifier result)
 
   set(${result} ${target})
 
+  if(TARGET ${target})
+    return(PROPAGATE ${result})
+  endif()
+
   file(READ "${source_dir}/package.json" package)
 
   string(JSON name GET "${package}" "name")
@@ -355,23 +353,7 @@ function(include_bare_module specifier result)
   if(ARGV_PREBUILDS)
     bare_target(host)
 
-    cmake_path(APPEND source_dir prebuilds ${host} OUTPUT_VARIABLE prebuilds_dir)
-
-    if(host MATCHES "darwin|ios")
-      set(prebuild "lib${name}.${version}.dylib")
-    elseif(host MATCHES "linux|android")
-      set(prebuild "lib${name}.${version}.so")
-    elseif(host MATCHES "win32")
-      set(prebuild "${name}-${version}.dll")
-    else()
-      message(FATAL_ERROR "Unsupported prebuild host '${host}'")
-    endif()
-
-    cmake_path(APPEND ARGV_DESTINATION "${prebuild}" OUTPUT_VARIABLE prebuild)
-
-    file(MAKE_DIRECTORY "${ARGV_DESTINATION}")
-
-    file(COPY_FILE "${prebuilds_dir}/${name}.bare" "${prebuild}")
+    cmake_path(APPEND source_dir "prebuilds" "${host}" "${name}.bare" OUTPUT_VARIABLE prebuild)
 
     add_library(${target} SHARED IMPORTED)
 
@@ -381,8 +363,6 @@ function(include_bare_module specifier result)
       IMPORTED_LOCATION "${prebuild}"
       IMPORTED_NO_SONAME ON
     )
-  elseif(TARGET ${target})
-    return(PROPAGATE ${result})
   else()
     cmake_path(RELATIVE_PATH source_dir BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" OUTPUT_VARIABLE binary_dir)
 
@@ -417,7 +397,7 @@ endfunction()
 
 function(link_bare_module receiver specifier)
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "PREBUILDS" "DESTINATION;WORKING_DIRECTORY" ""
+    PARSE_ARGV 2 ARGV "PREBUILDS" "WORKING_DIRECTORY" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -430,10 +410,6 @@ function(link_bare_module receiver specifier)
 
   if(ARGV_PREBUILDS)
     list(APPEND args PREBUILDS)
-  endif()
-
-  if(ARGV_DESTINATION)
-    list(APPEND args DESTINATION "${ARGV_DESTINATION}")
   endif()
 
   include_bare_module(
@@ -463,7 +439,7 @@ endfunction()
 
 function(link_bare_modules receiver)
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "PREBUILDS" "DESTINATION;WORKING_DIRECTORY" ""
+    PARSE_ARGV 1 ARGV "PREBUILDS" "WORKING_DIRECTORY" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -481,10 +457,6 @@ function(link_bare_modules receiver)
 
   if(ARGV_PREBUILDS)
     list(APPEND args PREBUILDS)
-  endif()
-
-  if(ARGV_DESTINATION)
-    list(APPEND args DESTINATION "${ARGV_DESTINATION}")
   endif()
 
   foreach(base ${packages})
