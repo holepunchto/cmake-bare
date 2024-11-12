@@ -419,7 +419,7 @@ function(link_bare_module receiver specifier)
   )
 
   if(NOT ARGV_PREBUILDS)
-    target_sources(
+    target_link_libraries(
       ${receiver}
       PRIVATE
         $<TARGET_OBJECTS:${target}>
