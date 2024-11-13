@@ -439,10 +439,6 @@ function(link_bare_module receiver specifier)
     PRIVATE
       ${target}
   )
-
-  if(NOT DEFINED ARGV_RUNTIME_LIBRARIES)
-    list(APPEND ARGV_RUNTIME_LIBRARIES uv uv_a napi mem utf url base64 hex)
-  endif()
 endfunction()
 
 function(link_bare_modules receiver)
