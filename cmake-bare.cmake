@@ -10,11 +10,15 @@ function(download_bare result)
   )
 
   if(NOT ARGV_DESTINATION)
-    set(ARGV_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+    set(ARGV_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/_bare")
   endif()
 
   if(NOT ARGV_VERSION)
     set(ARGV_VERSION "latest")
+  endif()
+
+  if(NOT EXISTS "${ARGV_DESTINATION}/package.json")
+    file(WRITE "${ARGV_DESTINATION}/package.json" "{}")
   endif()
 
   bare_target(target)
@@ -22,7 +26,7 @@ function(download_bare result)
   install_node_module(
     bare-runtime-${target}
     VERSION ${ARGV_VERSION}
-    PREFIX "${ARGV_DESTINATION}"
+    WORKING_DIRECTORY "${ARGV_DESTINATION}"
     FORCE
   )
 
@@ -61,17 +65,21 @@ function(download_bare_headers result)
   )
 
   if(NOT ARGV_DESTINATION)
-    set(ARGV_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+    set(ARGV_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/_bare")
   endif()
 
   if(NOT ARGV_VERSION)
     set(ARGV_VERSION "latest")
   endif()
 
+  if(NOT EXISTS "${ARGV_DESTINATION}/package.json")
+    file(WRITE "${ARGV_DESTINATION}/package.json" "{}")
+  endif()
+
   install_node_module(
     bare-headers
     VERSION ${ARGV_VERSION}
-    PREFIX "${ARGV_DESTINATION}"
+    WORKING_DIRECTORY "${ARGV_DESTINATION}"
     FORCE
   )
 
