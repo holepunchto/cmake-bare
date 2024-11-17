@@ -322,21 +322,13 @@ endfunction()
 
 function(include_bare_module specifier result)
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "PREBUILDS" "PREFIX;SUFFIX;WORKING_DIRECTORY" ""
+    PARSE_ARGV 2 ARGV "" "WORKING_DIRECTORY" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
     cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)
   else()
     set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
-  endif()
-
-  if(NOT ARGV_PREFIX)
-    set(ARGV_PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})
-  endif()
-
-  if(NOT ARGV_SUFFIX)
-    set(ARGV_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
   endif()
 
   resolve_node_module(
@@ -358,54 +350,39 @@ function(include_bare_module specifier result)
 
   string(JSON version GET "${package}" "version")
 
-  if(ARGV_PREBUILDS)
-    bare_target(host)
+  cmake_path(RELATIVE_PATH source_dir BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" OUTPUT_VARIABLE binary_dir)
 
-    cmake_path(APPEND source_dir "prebuilds" "${host}" "${name}.bare" OUTPUT_VARIABLE prebuild)
+  add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)
 
-    add_library(${target} SHARED IMPORTED)
+  string(MAKE_C_IDENTIFIER ${name} id)
 
-    set_target_properties(
-      ${target}
-      PROPERTIES
-      IMPORTED_LOCATION "${prebuild}"
-      IMPORTED_NO_SONAME ON
-    )
-  else()
-    cmake_path(RELATIVE_PATH source_dir BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" OUTPUT_VARIABLE binary_dir)
+  string(
+    RANDOM
+    LENGTH 8
+    ALPHABET "ybndrfg8ejkmcpqxot1uwisza345h769" # z-base-32
+    constructor
+  )
 
-    add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)
+  target_compile_definitions(
+    ${target}
+    PRIVATE
+      BARE_MODULE_FILENAME="${name}@${version}"
+      BARE_MODULE_REGISTER_CONSTRUCTOR
+      BARE_MODULE_CONSTRUCTOR_VERSION=${constructor}
 
-    string(MAKE_C_IDENTIFIER ${name} id)
+      NAPI_MODULE_FILENAME="${name}@${version}"
+      NAPI_MODULE_REGISTER_CONSTRUCTOR
+      NAPI_MODULE_CONSTRUCTOR_VERSION=${constructor}
 
-    string(
-      RANDOM
-      LENGTH 8
-      ALPHABET "ybndrfg8ejkmcpqxot1uwisza345h769" # z-base-32
-      constructor
-    )
-
-    target_compile_definitions(
-      ${target}
-      PRIVATE
-        BARE_MODULE_FILENAME="${name}@${version}"
-        BARE_MODULE_REGISTER_CONSTRUCTOR
-        BARE_MODULE_CONSTRUCTOR_VERSION=${constructor}
-
-        NAPI_MODULE_FILENAME="${name}@${version}"
-        NAPI_MODULE_REGISTER_CONSTRUCTOR
-        NAPI_MODULE_CONSTRUCTOR_VERSION=${constructor}
-
-        NODE_GYP_MODULE_NAME=${id}
-    )
-  endif()
+      NODE_GYP_MODULE_NAME=${id}
+  )
 
   return(PROPAGATE ${result})
 endfunction()
 
 function(link_bare_module receiver specifier)
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "PREBUILDS" "WORKING_DIRECTORY" ""
+    PARSE_ARGV 2 ARGV "" "WORKING_DIRECTORY" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -414,28 +391,15 @@ function(link_bare_module receiver specifier)
     set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
   endif()
 
-  set(args)
-
-  if(ARGV_PREBUILDS)
-    list(APPEND args PREBUILDS)
-  endif()
-
   include_bare_module(
     ${specifier} target
-    ${args}
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
-  if(NOT ARGV_PREBUILDS)
-    target_link_libraries(
-      ${receiver}
-      PRIVATE
-        $<TARGET_OBJECTS:${target}>
-    )
-  endif()
-
   target_link_libraries(
     ${receiver}
+    PRIVATE
+      $<TARGET_OBJECTS:${target}>
     PRIVATE
       ${target}
   )
@@ -443,7 +407,7 @@ endfunction()
 
 function(link_bare_modules receiver)
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "PREBUILDS" "WORKING_DIRECTORY" ""
+    PARSE_ARGV 1 ARGV "" "WORKING_DIRECTORY" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -457,12 +421,6 @@ function(link_bare_modules receiver)
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
-  set(args WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}")
-
-  if(ARGV_PREBUILDS)
-    list(APPEND args PREBUILDS)
-  endif()
-
   foreach(base ${packages})
     cmake_path(APPEND base package.json OUTPUT_VARIABLE package_path)
 
@@ -471,7 +429,10 @@ function(link_bare_modules receiver)
     string(JSON addon ERROR_VARIABLE error GET "${package}" "addon")
 
     if(error MATCHES "NOTFOUND")
-      link_bare_module(${receiver} ${base} ${args})
+      link_bare_module(
+        ${receiver} ${base}
+        WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
+      )
     endif()
   endforeach()
 endfunction()
