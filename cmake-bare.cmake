@@ -1,8 +1,5 @@
 include_guard()
 
-# Don't append library versions to the SONAME entry of shared libraries, ever.
-set(CMAKE_PLATFORM_NO_VERSIONED_SONAME ON)
-
 find_package(cmake-npm REQUIRED PATHS node_modules/cmake-npm)
 
 set(bare_module_dir "${CMAKE_CURRENT_LIST_DIR}")
@@ -222,9 +219,7 @@ function(add_bare_module result)
 
   download_bare_headers(bare_headers)
 
-  bare_module_target("." target NAME name VERSION version)
-
-  string(REGEX MATCH "^[0-9]+" major "${version}")
+  bare_module_target("." target NAME name)
 
   add_library(${target} OBJECT)
 
@@ -262,8 +257,6 @@ function(add_bare_module result)
     ${target}_module
     PROPERTIES
     OUTPUT_NAME ${name}
-    VERSION ${version}
-    SOVERSION ${major}
     PREFIX ""
     SUFFIX ".bare"
     IMPORT_PREFIX ""
