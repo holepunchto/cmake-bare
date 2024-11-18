@@ -215,8 +215,6 @@ function(bare_module_target directory result)
 endfunction()
 
 function(add_bare_module result)
-  download_bare(bare_bin IMPORT_FILE bare_lib)
-
   download_bare_headers(bare_headers)
 
   bare_module_target("." target NAME name)
@@ -241,16 +239,6 @@ function(add_bare_module result)
 
   bare_target(host)
 
-  add_executable(${target}_import_library IMPORTED)
-
-  set_target_properties(
-    ${target}_import_library
-    PROPERTIES
-    ENABLE_EXPORTS ON
-    IMPORTED_LOCATION "${bare_bin}"
-    IMPORTED_IMPLIB "${bare_lib}"
-  )
-
   add_library(${target}_module SHARED)
 
   set_target_properties(
@@ -269,7 +257,25 @@ function(add_bare_module result)
     WINDOWS_EXPORT_ALL_SYMBOLS ON
   )
 
+  target_link_libraries(
+    ${target}_module
+    PRIVATE
+      ${target}
+  )
+
   if(host MATCHES "win32")
+    download_bare(bare_bin IMPORT_FILE bare_lib)
+
+    add_library(${target}_import_library SHARED IMPORTED)
+
+    set_target_properties(
+      ${target}_import_library
+      PROPERTIES
+      ENABLE_EXPORTS ON
+      IMPORTED_LOCATION "${bare_bin}"
+      IMPORTED_IMPLIB "${bare_lib}"
+    )
+
     if(NOT TARGET bare_delay_load)
       add_library(bare_delay_load STATIC)
 
@@ -295,6 +301,8 @@ function(add_bare_module result)
 
     target_link_libraries(
       ${target}_module
+      PRIVATE
+        ${target}_import_library
       PUBLIC
         bare_delay_load
     )
@@ -304,14 +312,13 @@ function(add_bare_module result)
       INTERFACE
         /DELAYLOAD:${name}.bare
     )
+  else()
+    target_link_options(
+      ${target}_module
+      PRIVATE
+        -Wl,-undefined,dynamic_lookup
+    )
   endif()
-
-  target_link_libraries(
-    ${target}_module
-    PRIVATE
-      ${target}
-      ${target}_import_library
-  )
 
   if(host MATCHES "win32")
     install(
