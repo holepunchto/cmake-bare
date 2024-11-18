@@ -304,12 +304,6 @@ function(add_bare_module result)
       INTERFACE
         /DELAYLOAD:${name}.bare
     )
-  elseif(host MATCHES "linux|android")
-    target_link_options(
-      ${target}_module
-      PRIVATE
-        -Wl,-undefined,dynamic_lookup
-    )
   endif()
 
   target_link_libraries(
