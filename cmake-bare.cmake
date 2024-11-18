@@ -217,7 +217,9 @@ endfunction()
 function(add_bare_module result)
   download_bare_headers(bare_headers)
 
-  bare_module_target("." target NAME name)
+  bare_module_target("." target NAME name VERSION version)
+
+  string(REGEX MATCH "^[0-9]+" major "${version}")
 
   add_library(${target} OBJECT)
 
@@ -245,6 +247,8 @@ function(add_bare_module result)
     ${target}_module
     PROPERTIES
     OUTPUT_NAME ${name}
+    VERSION ${version}
+    SOVERSION ${major}
     PREFIX ""
     SUFFIX ".bare"
     IMPORT_PREFIX ""
