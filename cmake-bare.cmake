@@ -1,5 +1,8 @@
 include_guard()
 
+# Don't append library versions to the SONAME entry of shared libraries, ever.
+set(CMAKE_PLATFORM_NO_VERSIONED_SONAME ON)
+
 find_package(cmake-npm REQUIRED PATHS node_modules/cmake-npm)
 
 set(bare_module_dir "${CMAKE_CURRENT_LIST_DIR}")
@@ -219,7 +222,9 @@ function(add_bare_module result)
 
   download_bare_headers(bare_headers)
 
-  bare_module_target("." target NAME name)
+  bare_module_target("." target NAME name VERSION version)
+
+  string(REGEX MATCH "^[0-9]+" major "${version}")
 
   add_library(${target} OBJECT)
 
@@ -257,14 +262,14 @@ function(add_bare_module result)
     ${target}_module
     PROPERTIES
     OUTPUT_NAME ${name}
+    VERSION ${version}
+    SOVERSION ${major}
     PREFIX ""
     SUFFIX ".bare"
     IMPORT_PREFIX ""
     IMPORT_SUFFIX ".bare.lib"
-
-    # Don't set a shared library name to allow loading the resulting library as
-    # a plugin.
-    NO_SONAME ON
+    INSTALL_RPATH ""
+    INSTALL_NAME_DIR ""
 
     # Automatically export all available symbols on Windows. Without this,
     # module authors would have to explicitly export public symbols.
@@ -305,7 +310,7 @@ function(add_bare_module result)
       ${target}_import_library
   )
 
-  if (host MATCHES "win32")
+  if(host MATCHES "win32")
     install(
       TARGETS ${target}_module
       RUNTIME DESTINATION ${host}
@@ -322,7 +327,7 @@ endfunction()
 
 function(include_bare_module specifier result)
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "" "WORKING_DIRECTORY" ""
+    PARSE_ARGV 2 ARGV "" "SOURCE_DIR;BINARY_DIR;WORKING_DIRECTORY" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -332,7 +337,8 @@ function(include_bare_module specifier result)
   endif()
 
   resolve_node_module(
-    ${specifier} source_dir
+    ${specifier}
+    source_dir
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
@@ -340,49 +346,26 @@ function(include_bare_module specifier result)
 
   set(${result} ${target})
 
-  if(TARGET ${target})
-    return(PROPAGATE ${result})
-  endif()
-
-  file(READ "${source_dir}/package.json" package)
-
-  string(JSON name GET "${package}" "name")
-
-  string(JSON version GET "${package}" "version")
-
   cmake_path(RELATIVE_PATH source_dir BASE_DIRECTORY "${ARGV_WORKING_DIRECTORY}" OUTPUT_VARIABLE binary_dir)
 
-  add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)
+  if(ARGV_SOURCE_DIR)
+    set(${ARGV_SOURCE_DIR} "${source_dir}" PARENT_SCOPE)
+  endif()
 
-  string(MAKE_C_IDENTIFIER ${name} id)
+  if(ARGV_BINARY_DIR)
+    set(${ARGV_BINARY_DIR} "${binary_dir}" PARENT_SCOPE)
+  endif()
 
-  string(
-    RANDOM
-    LENGTH 8
-    ALPHABET "ybndrfg8ejkmcpqxot1uwisza345h769" # z-base-32
-    constructor
-  )
-
-  target_compile_definitions(
-    ${target}
-    PRIVATE
-      BARE_MODULE_FILENAME="${name}@${version}"
-      BARE_MODULE_REGISTER_CONSTRUCTOR
-      BARE_MODULE_CONSTRUCTOR_VERSION=${constructor}
-
-      NAPI_MODULE_FILENAME="${name}@${version}"
-      NAPI_MODULE_REGISTER_CONSTRUCTOR
-      NAPI_MODULE_CONSTRUCTOR_VERSION=${constructor}
-
-      NODE_GYP_MODULE_NAME=${id}
-  )
+  if(NOT TARGET ${target})
+    add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)
+  endif()
 
   return(PROPAGATE ${result})
 endfunction()
 
 function(link_bare_module receiver specifier)
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "" "WORKING_DIRECTORY" ""
+    PARSE_ARGV 2 ARGV "SHARED" "WORKING_DIRECTORY" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -392,17 +375,45 @@ function(link_bare_module receiver specifier)
   endif()
 
   include_bare_module(
-    ${specifier} target
+    ${specifier}
+    target
+    SOURCE_DIR source_dir
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
-  target_link_libraries(
-    ${receiver}
-    PRIVATE
-      $<TARGET_OBJECTS:${target}>
-    PRIVATE
+  if(ARGV_SHARED)
+    target_link_libraries(
+      ${receiver}
+      PRIVATE
+        ${target}_module
+    )
+  else()
+    bare_module_target("${source_dir}" target NAME name VERSION version HASH hash)
+
+    string(MAKE_C_IDENTIFIER ${target} id)
+
+    target_compile_definitions(
       ${target}
-  )
+      PRIVATE
+        BARE_MODULE_FILENAME="${name}@${version}"
+        BARE_MODULE_REGISTER_CONSTRUCTOR
+        BARE_MODULE_CONSTRUCTOR_VERSION=${hash}
+
+        NAPI_MODULE_FILENAME="${name}@${version}"
+        NAPI_MODULE_REGISTER_CONSTRUCTOR
+        NAPI_MODULE_CONSTRUCTOR_VERSION=${hash}
+
+        NODE_GYP_MODULE_NAME=${id}
+    )
+
+    target_link_libraries(
+      ${receiver}
+      PRIVATE
+        $<TARGET_OBJECTS:${target}>
+      PRIVATE
+        ${target}
+    )
+  endif()
 endfunction()
 
 function(link_bare_modules receiver)
@@ -430,7 +441,8 @@ function(link_bare_modules receiver)
 
     if(error MATCHES "NOTFOUND")
       link_bare_module(
-        ${receiver} ${base}
+        ${receiver}
+        ${base}
         WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
       )
     endif()

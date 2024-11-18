@@ -1,0 +1,8 @@
+{
+  "name": "addon",
+  "version": "1.2.3",
+  "devDependencies": {
+    "cmake-bare": "file:../../..",
+    "cmake-npm": "^1.0.4"
+  }
+}
