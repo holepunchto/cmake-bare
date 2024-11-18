@@ -304,7 +304,7 @@ function(add_bare_module result)
       INTERFACE
         /DELAYLOAD:${name}.bare
     )
-  else()
+  elseif(host MATCHES "linux|android")
     target_link_options(
       ${target}_module
       PRIVATE
