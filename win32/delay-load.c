@@ -12,22 +12,42 @@
 #include <delayimp.h>
 #include <string.h>
 
+static inline int
+bare__string_equals (LPCSTR a, LPCSTR b) {
+  return _stricmp(a, b) == 0;
+}
+
+static inline int
+bare__string_ends_with (LPCSTR a, LPCSTR b) {
+  size_t a_len = strlen(a);
+  size_t b_len = strlen(b);
+
+  if (b_len > a_len) return 0;
+
+  return bare__string_equals(a + a_len - b_len, b);
+}
+
 static FARPROC WINAPI
-bare_delay_load (unsigned event, PDelayLoadInfo info) {
+bare__delay_load (unsigned event, PDelayLoadInfo info) {
   switch (event) {
   case dliNotePreLoadLibrary:
-    if (_stricmp(info->szDll, "bare.exe") == 0 || _stricmp(info->szDll, "bare.dll") == 0) {
+    LPCSTR dll = info->szDll;
+
+    if (bare__string_equals(dll, "bare.exe") || bare__string_equals(dll, "bare.dll")) {
       return (FARPROC) GetModuleHandle(NULL);
     }
-    break;
+
+    if (bare__string_ends_with(dll, ".bare")) {
+      return NULL; // TODO
+    }
+
+    return NULL;
 
   default:
     return NULL;
   }
-
-  return NULL;
 }
 
-const PfnDliHook __pfnDliNotifyHook2 = bare_delay_load;
+const PfnDliHook __pfnDliNotifyHook2 = bare__delay_load;
 
-const PfnDliHook __pfnDliFailureHook2 = bare_delay_load;
+const PfnDliHook __pfnDliFailureHook2 = bare__delay_load;

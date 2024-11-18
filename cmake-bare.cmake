@@ -270,23 +270,39 @@ function(add_bare_module result)
   )
 
   if(host MATCHES "win32")
-    target_link_options(
-      ${target}_module
-      PRIVATE
-        /DELAYLOAD:bare.exe
-        /DELAYLOAD:bare.dll
-    )
+    if(NOT TARGET bare_delay_load)
+      add_library(bare_delay_load STATIC)
+
+      target_sources(
+        bare_delay_load
+        PRIVATE
+          "${bare_module_dir}/win32/delay-load.c"
+      )
+
+      target_link_libraries(
+        bare_delay_load
+        INTERFACE
+          delayimp
+      )
+
+      target_link_options(
+        bare_delay_load
+        INTERFACE
+          /DELAYLOAD:bare.exe
+          /DELAYLOAD:bare.dll
+      )
+    endif()
 
     target_link_libraries(
       ${target}_module
-      PRIVATE
-        delayimp
+      PUBLIC
+        bare_delay_load
     )
 
-    target_sources(
+    target_link_options(
       ${target}_module
-      PRIVATE
-        "${bare_module_dir}/win32/delay-load.c"
+      INTERFACE
+        /DELAYLOAD:${name}.bare
     )
   else()
     target_link_options(
