@@ -317,7 +317,7 @@ function(add_bare_module result)
     target_link_options(
       ${target}_module
       INTERFACE
-        /DELAYLOAD:${name}.bare
+        /DELAYLOAD:${name}@${major}.bare
     )
   else()
     target_link_options(
