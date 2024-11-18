@@ -246,15 +246,18 @@ function(add_bare_module result)
   set_target_properties(
     ${target}_module
     PROPERTIES
-    OUTPUT_NAME ${name}
-    VERSION ${version}
-    SOVERSION ${major}
+    OUTPUT_NAME ${name}@${major}
     PREFIX ""
     SUFFIX ".bare"
     IMPORT_PREFIX ""
     IMPORT_SUFFIX ".bare.lib"
     INSTALL_RPATH ""
     INSTALL_NAME_DIR ""
+    BUILD_WITH_INSTALL_RPATH ON
+    BUILD_WITH_INSTALL_NAME_DIR ON
+
+    MACHO_CURRENT_VERSION ${version}
+    MACHO_COMPATIBILITY_VERSION ${major}
 
     # Automatically export all available symbols on Windows. Without this,
     # module authors would have to explicitly export public symbols.
@@ -324,17 +327,11 @@ function(add_bare_module result)
     )
   endif()
 
-  if(host MATCHES "win32")
-    install(
-      TARGETS ${target}_module
-      RUNTIME DESTINATION ${host}
-    )
-  else()
-    install(
-      TARGETS ${target}_module
-      LIBRARY DESTINATION ${host}
-    )
-  endif()
+  install(
+    FILES $<TARGET_FILE:${target}_module>
+    DESTINATION ${host}
+    RENAME ${name}.bare
+  )
 
   return(PROPAGATE ${result})
 endfunction()
