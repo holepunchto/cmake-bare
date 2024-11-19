@@ -292,6 +292,12 @@ function(add_bare_module result)
           "${bare_module_dir}/win32/delay-load.c"
       )
 
+      target_include_directories(
+        bare_delay_load
+        PRIVATE
+          ${bare_headers}
+      )
+
       target_link_libraries(
         bare_delay_load
         INTERFACE
