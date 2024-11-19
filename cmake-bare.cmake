@@ -247,10 +247,12 @@ function(add_bare_module result)
     ${target}_module
     PROPERTIES
     OUTPUT_NAME ${name}@${major}
+
     PREFIX ""
     SUFFIX ".bare"
     IMPORT_PREFIX ""
     IMPORT_SUFFIX ".bare.lib"
+
     INSTALL_RPATH ""
     INSTALL_NAME_DIR ""
     BUILD_WITH_INSTALL_RPATH ON
