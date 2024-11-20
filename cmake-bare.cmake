@@ -246,18 +246,27 @@ function(add_bare_module result)
   set_target_properties(
     ${target}_module
     PROPERTIES
-    OUTPUT_NAME ${name}@${major}
 
+    # Set the logical name of the addon which is tied to its major version. This
+    # is NOT the name of the addon as it will be installed, but is the name that
+    # the linker will use to refer to the corresponding binary.
+    OUTPUT_NAME ${name}@${major}
     PREFIX ""
     SUFFIX ".bare"
     IMPORT_PREFIX ""
     IMPORT_SUFFIX ".bare.lib"
 
+    # Remove the runtime search path for ELF binaries and directory portion of
+    # the install name for Mach-O binaries. This ensures that the addon is
+    # identified by the linker only by its logical name.
     INSTALL_RPATH ""
     INSTALL_NAME_DIR ""
     BUILD_WITH_INSTALL_RPATH ON
     BUILD_WITH_INSTALL_NAME_DIR ON
 
+    # Set the Mach-O compatibility versions for macOS and iOS. This is mostly
+    # for debugging purposes as the addon version is already encoded in its
+    # logical name.
     MACHO_CURRENT_VERSION ${version}
     MACHO_COMPATIBILITY_VERSION ${major}
 
@@ -437,13 +446,19 @@ endfunction()
 
 function(link_bare_modules receiver)
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "" "WORKING_DIRECTORY" ""
+    PARSE_ARGV 1 ARGV "SHARED" "WORKING_DIRECTORY" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
     cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)
   else()
     set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
+  endif()
+
+  if(ARGV_SHARED)
+    set(SHARED SHARED)
+  else()
+    set(SHARED)
   endif()
 
   list_node_modules(
@@ -462,6 +477,7 @@ function(link_bare_modules receiver)
       link_bare_module(
         ${receiver}
         ${base}
+        ${SHARED}
         WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
       )
     endif()
