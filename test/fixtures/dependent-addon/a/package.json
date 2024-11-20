@@ -1,0 +1,13 @@
+{
+  "name": "a",
+  "version": "1.2.3",
+  "addon": true,
+  "files": [
+    "index.js",
+    "prebuilds"
+  ],
+  "devDependencies": {
+    "cmake-bare": "file:../../../..",
+    "cmake-npm": "^1.0.4"
+  }
+}
