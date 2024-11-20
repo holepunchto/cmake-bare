@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <bare.h>
 #include <js.h>
 
