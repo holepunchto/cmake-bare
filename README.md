@@ -36,9 +36,9 @@ Determine the CMake library target name of the module in `<directory>` and write
 
 Add a Bare native addon target and write the target name to the `<result>` variable.
 
-#### `include_bare_module(<specifier> <result> [SOURCE_DIR <var>] [BINARY_DIR <var>] [WORKING_DIRECTORY <path>])`
+#### `include_bare_module(<specifier> <result> [PREBUILD] [SOURCE_DIR <var>] [BINARY_DIR <var>] [WORKING_DIRECTORY <path>])`
 
-Include the Bare native addon identified by `<specifier>` and write its library target name to the `<result>` variable. The `SOURCE_DIR` and `BINARY_DIR` arguments can be passed to access the source and binary directories of the included addon.
+Include the Bare native addon identified by `<specifier>` and write its library target name to the `<result>` variable. If `PREBUILD` is passed then the native addon prebuild will be included as an imported target. The `SOURCE_DIR` and `BINARY_DIR` arguments can be passed to access the source and binary directories of the included addon.
 
 To change the working directory from which `<specifier>` is resolved, pass the `WORKING_DIRECTORY` argument.
 

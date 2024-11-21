@@ -371,6 +371,10 @@ function(add_bare_module result)
 endfunction()
 
 function(include_bare_module specifier result)
+  set(option_keywords
+    PREBUILD
+  )
+
   set(one_value_keywords
     SOURCE_DIR
     BINARY_DIR
@@ -378,7 +382,7 @@ function(include_bare_module specifier result)
   )
 
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "" "${one_value_keywords}" ""
+    PARSE_ARGV 2 ARGV "${option_keywords}" "${one_value_keywords}" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -393,7 +397,7 @@ function(include_bare_module specifier result)
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
-  bare_module_target("${source_dir}" target)
+  bare_module_target("${source_dir}" target NAME name)
 
   set(${result} ${target})
 
@@ -407,7 +411,19 @@ function(include_bare_module specifier result)
     set(${ARGV_BINARY_DIR} "${binary_dir}" PARENT_SCOPE)
   endif()
 
-  if(NOT TARGET ${target})
+  if(ARGV_PREBUILD)
+    bare_target(host)
+
+    cmake_path(APPEND source_dir "prebuilds" "${host}" "${name}.bare" OUTPUT_VARIABLE prebuild)
+
+    add_library(${target}_module SHARED IMPORTED)
+
+    set_target_properties(
+      ${target}_module
+      PROPERTIES
+      IMPORTED_LOCATION "${prebuild}"
+    )
+  elseif(NOT TARGET ${target})
     add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)
   endif()
 
@@ -433,9 +449,16 @@ function(link_bare_module receiver specifier)
     set(ARGV_WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
   endif()
 
+  if(ARGV_SHARED)
+    set(PREBUILD PREBUILD)
+  else()
+    set(PREBUILD)
+  endif()
+
   include_bare_module(
     ${specifier}
     target
+    ${PREBUILD}
     SOURCE_DIR source_dir
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
