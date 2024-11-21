@@ -5,8 +5,14 @@ find_package(cmake-npm REQUIRED PATHS node_modules/cmake-npm)
 set(bare_module_dir "${CMAKE_CURRENT_LIST_DIR}")
 
 function(download_bare result)
+  set(one_value_keywords
+    DESTINATION
+    VERSION
+    IMPORT_FILE
+  )
+
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "" "DESTINATION;IMPORT_FILE;VERSION" ""
+    PARSE_ARGV 1 ARGV "" "${one_value_keywords}" ""
   )
 
   if(NOT ARGV_DESTINATION)
@@ -60,8 +66,13 @@ function(download_bare result)
 endfunction()
 
 function(download_bare_headers result)
+  set(one_value_keywords
+    DESTINATION
+    VERSION
+  )
+
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "" "DESTINATION;VERSION" ""
+    PARSE_ARGV 1 ARGV "" "${one_value_keywords}" ""
   )
 
   if(NOT ARGV_DESTINATION)
@@ -175,8 +186,14 @@ function(bare_target result)
 endfunction()
 
 function(bare_module_target directory result)
+  set(one_value_keywords
+    NAME
+    VERSION
+    HASH
+  )
+
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "" "NAME;VERSION;HASH" ""
+    PARSE_ARGV 2 ARGV "" "${one_value_keywords}" ""
   )
 
   set(package_path package.json)
@@ -200,18 +217,18 @@ function(bare_module_target directory result)
   set(${result} "${name}-${version}-${hash}")
 
   if(ARGV_NAME)
-    set(${ARGV_NAME} ${name})
+    set(${ARGV_NAME} ${name} PARENT_SCOPE)
   endif()
 
   if(ARGV_VERSION)
-    set(${ARGV_VERSION} ${version})
+    set(${ARGV_VERSION} ${version} PARENT_SCOPE)
   endif()
 
   if(ARGV_HASH)
-    set(${ARGV_HASH} ${hash})
+    set(${ARGV_HASH} ${hash} PARENT_SCOPE)
   endif()
 
-  return(PROPAGATE ${result} ${ARGV_NAME} ${ARGV_VERSION} ${ARGV_HASH})
+  return(PROPAGATE ${result})
 endfunction()
 
 function(add_bare_module result)
@@ -238,8 +255,6 @@ function(add_bare_module result)
   )
 
   set(${result} ${target})
-
-  bare_target(host)
 
   add_library(${target}_module SHARED)
 
@@ -280,6 +295,8 @@ function(add_bare_module result)
     PRIVATE
       ${target}
   )
+
+  bare_target(host)
 
   if(host MATCHES "win32")
     download_bare(bare_bin IMPORT_FILE bare_lib)
@@ -354,8 +371,14 @@ function(add_bare_module result)
 endfunction()
 
 function(include_bare_module specifier result)
+  set(one_value_keywords
+    SOURCE_DIR
+    BINARY_DIR
+    WORKING_DIRECTORY
+  )
+
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "" "SOURCE_DIR;BINARY_DIR;WORKING_DIRECTORY" ""
+    PARSE_ARGV 2 ARGV "" "${one_value_keywords}" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -392,8 +415,16 @@ function(include_bare_module specifier result)
 endfunction()
 
 function(link_bare_module receiver specifier)
+  set(option_keywords
+    SHARED
+  )
+
+  set(one_value_keywords
+    WORKING_DIRECTORY
+  )
+
   cmake_parse_arguments(
-    PARSE_ARGV 2 ARGV "SHARED" "WORKING_DIRECTORY" ""
+    PARSE_ARGV 2 ARGV "${option_keywords}" "${one_value_keywords}" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -445,8 +476,16 @@ function(link_bare_module receiver specifier)
 endfunction()
 
 function(link_bare_modules receiver)
+  set(option_keywords
+    SHARED
+  )
+
+  set(one_value_keywords
+    WORKING_DIRECTORY
+  )
+
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "SHARED" "WORKING_DIRECTORY" ""
+    PARSE_ARGV 1 ARGV "${option_keywords}" "${one_value_keywords}" ""
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -473,7 +512,7 @@ function(link_bare_modules receiver)
 
     string(JSON addon ERROR_VARIABLE error GET "${package}" "addon")
 
-    if(error MATCHES "NOTFOUND")
+    if(addon)
       link_bare_module(
         ${receiver}
         ${base}
