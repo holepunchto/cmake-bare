@@ -507,8 +507,12 @@ function(link_bare_modules receiver)
     WORKING_DIRECTORY
   )
 
+  set(multi_value_keywords
+    EXCLUDE
+  )
+
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "${option_keywords}" "${one_value_keywords}" ""
+    PARSE_ARGV 1 ARGV "${option_keywords}" "${one_value_keywords}" "${multi_value_keywords}"
   )
 
   if(ARGV_WORKING_DIRECTORY)
@@ -532,6 +536,12 @@ function(link_bare_modules receiver)
     cmake_path(APPEND base package.json OUTPUT_VARIABLE package_path)
 
     file(READ "${package_path}" package)
+
+    string(JSON name ERROR_VARIABLE error GET "${package}" "name")
+
+    if("${name}" IN_LIST ARGV_EXCLUDE)
+      continue()
+    endif()
 
     string(JSON addon ERROR_VARIABLE error GET "${package}" "addon")
 

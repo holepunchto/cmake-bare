@@ -48,7 +48,7 @@ Link the Bare native addon identified by `<specifier>` to the library target ide
 
 To change the working directory from which `<specifier>` is resolved, pass the `WORKING_DIRECTORY` argument.
 
-#### `link_bare_modules(<receiver> [SHARED] [WORKING_DIRECTORY <path>])`
+#### `link_bare_modules(<receiver> [SHARED] [EXCLUDE <name...>] [WORKING_DIRECTORY <path>])`
 
 Link all Bare native addons declared as dependencies in the `package.json` manifest of the current source directory to the library target identified by `<receiver>`. Arguments are the same of for `link_bare_module()`.
 
