@@ -214,7 +214,7 @@ function(bare_module_target directory result)
 
   string(SUBSTRING "${hash}" 0 8 hash)
 
-  set(${result} "${name}-${version}-${hash}")
+  string(REGEX REPLACE "@" "" ${result} "${name}-${version}-${hash}")
 
   if(ARGV_NAME)
     set(${ARGV_NAME} ${name} PARENT_SCOPE)
