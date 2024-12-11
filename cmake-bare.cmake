@@ -32,8 +32,9 @@ function(download_bare result)
   install_node_module(
     bare-runtime-${target}
     VERSION ${ARGV_VERSION}
-    WORKING_DIRECTORY "${ARGV_DESTINATION}"
+    SAVE
     FORCE
+    WORKING_DIRECTORY "${ARGV_DESTINATION}"
   )
 
   resolve_node_module(
@@ -90,8 +91,9 @@ function(download_bare_headers result)
   install_node_module(
     bare-headers
     VERSION ${ARGV_VERSION}
-    WORKING_DIRECTORY "${ARGV_DESTINATION}"
+    SAVE
     FORCE
+    WORKING_DIRECTORY "${ARGV_DESTINATION}"
   )
 
   resolve_node_module(

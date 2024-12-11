@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/holepunchto/cmake-bare#readme",
   "dependencies": {
-    "cmake-npm": "^1.0.0"
+    "cmake-npm": "^1.1.0"
   },
   "devDependencies": {
     "prettier": "^3.3.3",
