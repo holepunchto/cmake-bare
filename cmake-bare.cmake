@@ -209,6 +209,7 @@ function(bare_module_target directory result)
   string(JSON name GET "${package}" "name")
 
   string(REGEX REPLACE "/" "+" name ${name})
+  string(REGEX REPLACE "^@" "" name ${name})
 
   string(JSON version GET "${package}" "version")
 
@@ -216,7 +217,7 @@ function(bare_module_target directory result)
 
   string(SUBSTRING "${hash}" 0 8 hash)
 
-  string(REGEX REPLACE "@" "" ${result} "${name}-${version}-${hash}")
+  set(${result} "${name}-${version}-${hash}")
 
   if(ARGV_NAME)
     set(${ARGV_NAME} ${name} PARENT_SCOPE)
