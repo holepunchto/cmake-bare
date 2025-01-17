@@ -267,13 +267,19 @@ function(add_bare_module result)
 
   set(${result} ${target})
 
+  if(ARGV_EXPORTS)
+    set(exports ON)
+  else()
+    set(exports OFF)
+  endif()
+
   add_library(${target}_module SHARED)
 
   set_target_properties(
     ${target}_module
     PROPERTIES
 
-    ENABLE_EXPORTS $<BOOL:${ARGV_EXPORTS}>
+    ENABLE_EXPORTS ${exports}
 
     # Set the logical name of the addon which is tied to its major version. This
     # is NOT the name of the addon as it will be installed, but is the name that
