@@ -235,6 +235,14 @@ function(bare_module_target directory result)
 endfunction()
 
 function(add_bare_module result)
+  set(option_keywords
+    EXPORTS
+  )
+
+  cmake_parse_arguments(
+    PARSE_ARGV 1 ARGV "${option_keywords}" "" ""
+  )
+
   download_bare_headers(bare_headers)
 
   bare_module_target("." target NAME name VERSION version)
@@ -265,6 +273,8 @@ function(add_bare_module result)
     ${target}_module
     PROPERTIES
 
+    ENABLE_EXPORTS $<BOOL:${ARGV_EXPORTS}>
+
     # Set the logical name of the addon which is tied to its major version. This
     # is NOT the name of the addon as it will be installed, but is the name that
     # the linker will use to refer to the corresponding binary.
@@ -272,7 +282,7 @@ function(add_bare_module result)
     PREFIX ""
     SUFFIX ".bare"
     IMPORT_PREFIX ""
-    IMPORT_SUFFIX ".bare.lib"
+    IMPORT_SUFFIX ".bare.exports"
 
     # Remove the runtime search path for ELF binaries and directory portion of
     # the install name for Mach-O binaries. This ensures that the addon is
@@ -370,6 +380,14 @@ function(add_bare_module result)
     RENAME ${name}.bare
   )
 
+  if(ARGV_EXPORTS)
+    install(
+      FILES $<TARGET_IMPORT_FILE:${target}_module>
+      DESTINATION ${host}
+      RENAME ${name}.bare.exports
+    )
+  endif()
+
   return(PROPAGATE ${result})
 endfunction()
 
@@ -425,6 +443,7 @@ function(include_bare_module specifier result)
       ${target}_module
       PROPERTIES
       IMPORTED_LOCATION "${prebuild}"
+      IMPORTED_IMPLIB "${prebuild}.exports"
     )
   elseif(NOT TARGET ${target})
     add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)

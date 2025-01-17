@@ -32,7 +32,7 @@ Write the current compilation target to the `<result>` variable.
 
 Determine the CMake library target name of the module in `<directory>` and write the result to the `<result>` variable. The `NAME`, `VERSION`, and `HASH` arguments can be passed to access specific portions of the target name which will be of the format `${name}-${version}-${hash}`.
 
-#### `add_bare_module(<result>)`
+#### `add_bare_module(<result> [EXPORTS])`
 
 Add a Bare native addon target and write the target name to the `<result>` variable.
 
