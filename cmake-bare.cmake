@@ -424,7 +424,9 @@ function(include_bare_module specifier result)
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
-  bare_module_target("${source_dir}" target NAME name)
+  bare_module_target("${source_dir}" target NAME name VERSION version)
+
+  string(REGEX MATCH "^[0-9]+" major "${version}")
 
   set(${result} ${target})
 
@@ -450,6 +452,12 @@ function(include_bare_module specifier result)
       PROPERTIES
       IMPORTED_LOCATION "${prebuild}"
       IMPORTED_IMPLIB "${prebuild}.exports"
+    )
+
+    target_link_options(
+      ${target}_module
+      INTERFACE
+        /DELAYLOAD:${name}@${major}.bare
     )
   elseif(NOT TARGET ${target})
     add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)
