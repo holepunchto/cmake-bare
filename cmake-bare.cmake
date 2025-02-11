@@ -454,11 +454,13 @@ function(include_bare_module specifier result)
       IMPORTED_IMPLIB "${prebuild}.exports"
     )
 
-    target_link_options(
-      ${target}_module
-      INTERFACE
-        /DELAYLOAD:${name}@${major}.bare
-    )
+    if(host MATCHES "win32")
+      target_link_options(
+        ${target}_module
+        INTERFACE
+          /DELAYLOAD:${name}@${major}.bare
+      )
+    endif()
   elseif(NOT TARGET ${target})
     add_subdirectory("${source_dir}" "${binary_dir}" EXCLUDE_FROM_ALL)
   endif()
