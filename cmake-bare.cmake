@@ -212,7 +212,11 @@ function(bare_module_target directory result)
 
   string(JSON name GET "${package}" "name")
 
-  string(REGEX REPLACE "/" "+" name ${name})
+  if(name MATCHES "__")
+    message(FATAL_ERROR "Package name '${name}' is invalid")
+  endif()
+
+  string(REGEX REPLACE "/" "__" name ${name})
   string(REGEX REPLACE "^@" "" name ${name})
 
   string(JSON version GET "${package}" "version")
