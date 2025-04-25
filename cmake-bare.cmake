@@ -175,15 +175,29 @@ function(bare_simulator result)
   return(PROPAGATE ${result})
 endfunction()
 
+function(bare_environment result)
+  set(environment "")
+
+  if(APPLE AND CMAKE_OSX_SYSROOT MATCHES "iPhoneSimulator")
+    set(environment "simulator")
+  elseif(LINUX AND CMAKE_C_COMPILER_TARGET MATCHES "-musl(sf)?")
+    set(environment "musl")
+  endif()
+
+  set(${result} ${environment})
+
+  return(PROPAGATE ${result})
+endfunction()
+
 function(bare_target result)
   bare_platform(platform)
   bare_arch(arch)
-  bare_simulator(simulator)
+  bare_environment(environment)
 
   set(target ${platform}-${arch})
 
-  if(simulator)
-    set(target ${target}-simulator)
+  if(environment)
+    set(target ${target}-${environment})
   endif()
 
   set(${result} ${target})

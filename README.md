@@ -24,6 +24,10 @@ Write the current compilation target architecture to the `<result>` variable.
 
 Write whether or not the current compilation target is a simulator to the `<result>` variable.
 
+#### `bare_environment(<result>)`
+
+Write the current compilation target environment to the `<result>` variable.
+
 #### `bare_target(<result>)`
 
 Write the current compilation target to the `<result>` variable.
