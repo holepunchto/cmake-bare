@@ -180,8 +180,8 @@ function(bare_environment result)
 
   if(APPLE AND CMAKE_OSX_SYSROOT MATCHES "iPhoneSimulator")
     set(environment "simulator")
-  elseif(LINUX AND CMAKE_C_COMPILER_TARGET MATCHES "-musl(sf)?")
-    set(environment "musl")
+  elseif(LINUX AND CMAKE_C_COMPILER_TARGET MATCHES "-(musl(sf))?")
+    set(environment "${CMAKE_MATCH_1}")
   endif()
 
   set(${result} ${environment})
