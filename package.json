@@ -1,6 +1,6 @@
 {
   "name": "cmake-bare",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Bare utilities for CMake",
   "files": [
     "*.cmake",
