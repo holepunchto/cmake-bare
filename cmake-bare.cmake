@@ -281,6 +281,12 @@ function(add_bare_module result)
     POSITION_INDEPENDENT_CODE ON
   )
 
+  target_compile_definitions(
+    ${target}
+    PRIVATE
+      BARE_MODULE_NAME="${name}@${version}"
+  )
+
   target_include_directories(
     ${target}
     PRIVATE
