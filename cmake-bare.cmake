@@ -543,7 +543,7 @@ function(link_bare_module receiver specifier)
     target_compile_definitions(
       ${target}
       PRIVATE
-        BARE_MODULE_FILENAME="${name}@${version}"
+        BARE_MODULE_NAME="${name}@${version}"
         BARE_MODULE_REGISTER_CONSTRUCTOR
         BARE_MODULE_CONSTRUCTOR_VERSION=${hash}
 
