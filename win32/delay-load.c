@@ -78,6 +78,6 @@ bare__delay_load(unsigned event, PDelayLoadInfo info) {
   }
 }
 
-PfnDliHook __pfnDliNotifyHook2 = bare__delay_load;
+const PfnDliHook __pfnDliNotifyHook2 = bare__delay_load;
 
-PfnDliHook __pfnDliFailureHook2 = bare__delay_load;
+const PfnDliHook __pfnDliFailureHook2 = bare__delay_load;
