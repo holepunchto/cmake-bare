@@ -60,7 +60,7 @@ bare__string_ends_with(LPCSTR a, LPCSTR b) {
 static FARPROC WINAPI
 bare__delay_load(unsigned event, PDelayLoadInfo info) {
   switch (event) {
-  case dliNotePreLoadLibrary:
+  case dliNotePreLoadLibrary: {
     LPCSTR dll = info->szDll;
 
     if (bare__string_equals(dll, "bare.exe") || bare__string_equals(dll, "bare.dll")) {
@@ -72,6 +72,7 @@ bare__delay_load(unsigned event, PDelayLoadInfo info) {
     }
 
     return NULL;
+  }
 
   default:
     return NULL;
