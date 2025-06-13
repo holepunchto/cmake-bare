@@ -17,7 +17,7 @@
 typedef uv_lib_t *(*bare__module_find_fn)(const char *name);
 
 static inline HMODULE
-bare__module_main (void) {
+bare__module_main(void) {
   static HMODULE main = NULL;
 
   if (main == NULL) main = GetModuleHandle(NULL);
@@ -26,7 +26,7 @@ bare__module_main (void) {
 }
 
 static inline HMODULE
-bare__module_find (const char *name) {
+bare__module_find(const char *name) {
   static bare__module_find_fn find = NULL;
 
   if (find == NULL) {
@@ -43,12 +43,12 @@ bare__module_find (const char *name) {
 }
 
 static inline int
-bare__string_equals (LPCSTR a, LPCSTR b) {
+bare__string_equals(LPCSTR a, LPCSTR b) {
   return _stricmp(a, b) == 0;
 }
 
 static inline int
-bare__string_ends_with (LPCSTR a, LPCSTR b) {
+bare__string_ends_with(LPCSTR a, LPCSTR b) {
   size_t a_len = strlen(a);
   size_t b_len = strlen(b);
 
@@ -58,7 +58,7 @@ bare__string_ends_with (LPCSTR a, LPCSTR b) {
 }
 
 static FARPROC WINAPI
-bare__delay_load (unsigned event, PDelayLoadInfo info) {
+bare__delay_load(unsigned event, PDelayLoadInfo info) {
   switch (event) {
   case dliNotePreLoadLibrary:
     LPCSTR dll = info->szDll;
@@ -78,6 +78,6 @@ bare__delay_load (unsigned event, PDelayLoadInfo info) {
   }
 }
 
-const PfnDliHook __pfnDliNotifyHook2 = bare__delay_load;
+PfnDliHook __pfnDliNotifyHook2 = bare__delay_load;
 
-const PfnDliHook __pfnDliFailureHook2 = bare__delay_load;
+PfnDliHook __pfnDliFailureHook2 = bare__delay_load;
