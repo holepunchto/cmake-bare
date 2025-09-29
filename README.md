@@ -24,6 +24,10 @@ Write the current compilation target architecture to the `<result>` variable.
 
 Write whether or not the current compilation target is a simulator to the `<result>` variable.
 
+#### `bare_microprocessor(<result>)`
+
+Write whether or not the current compilation target is a microprocessor/embedded system to the `<result>` variable.
+
 #### `bare_environment(<result>)`
 
 Write the current compilation target environment to the `<result>` variable.
@@ -55,6 +59,33 @@ To change the working directory from which `<specifier>` is resolved, pass the `
 #### `link_bare_modules(<receiver> [SHARED] [EXCLUDE <name...>] [WORKING_DIRECTORY <path>])`
 
 Link all Bare native addons declared as dependencies in the `package.json` manifest of the current source directory to the library target identified by `<receiver>`. Arguments are the same of for `link_bare_module()`.
+
+## Microprocessor and Embedded Platform Support
+
+This library now supports a wide range of microprocessor and embedded platforms:
+
+### Supported Platforms
+- **Embedded Systems**: Espruino, FreeRTOS, Zephyr, Arduino, bare metal
+- **Microcontrollers**: nRF52840, ESP32/ESP8266, STM32, AVR, MSP430, PIC32
+- **Architectures**: ARM Cortex (M0/M3/M4/M7/A series), RISC-V, AVR, Xtensa, legacy processors
+
+### Supported Architectures
+- **ARM**: arm64, arm, armv6, armv8m, cortex (Cortex-M, Cortex-A, Cortex-R)
+- **RISC-V**: riscv32, riscv64, riscv
+- **AVR**: avr (ATmega, ATtiny)
+- **MSP430**: msp430
+- **PIC32**: pic32
+- **Xtensa**: xtensa (ESP32/ESP8266)
+- **STM32**: stm32
+- **Legacy**: 8051, Z80, 6502, 68000
+
+### Automatic Microprocessor Detection
+
+The library automatically detects microprocessor targets and applies appropriate settings:
+- Size optimization (`-Os`)
+- Function/data sectioning for dead code elimination
+- Disabled position-independent code
+- Microprocessor-specific C/C++ standards
 
 ## License
 

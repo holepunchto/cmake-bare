@@ -120,6 +120,12 @@ function(bare_platform result)
     set(${result} ${platform})
   elseif(platform MATCHES "windows")
     set(${result} "win32")
+  elseif(platform MATCHES "generic")
+    if(DEFINED TOOLCHAIN_PLATFORM AND NOT "${TOOLCHAIN_PLATFORM}" STREQUAL "")
+      set(${result} "${TOOLCHAIN_PLATFORM}")
+    else()
+      message(FATAL_ERROR "CMAKE_SYSTEM_NAME is Generic, but TOOLCHAIN_PLATFORM is not set")
+    endif()
   else()
     set(${result} "unknown")
   endif()
@@ -144,18 +150,52 @@ function(bare_arch result)
 
   string(TOLOWER "${arch}" arch)
 
+  # ARM architectures
   if(arch MATCHES "arm64|aarch64")
     set(${result} "arm64")
-  elseif(arch MATCHES "armv7-a|armeabi-v7a")
+  elseif(arch MATCHES "armv7-a|armeabi-v7a|armv7m|armv7em|armv7r|arm")
     set(${result} "arm")
+  elseif(arch MATCHES "armv6m|armv6|armv6t2")
+    set(${result} "armv6")
+  elseif(arch MATCHES "armv8m|armv8.1m|armv8.1mm")
+    set(${result} "armv8m")
+  elseif(arch MATCHES "cortex-m[0-9]+|cortex-a[0-9]+|cortex-r[0-9]+")
+    set(${result} "cortex")
+  # x86/x64 architectures
   elseif(arch MATCHES "x64|x86_64|amd64")
     set(${result} "x64")
   elseif(arch MATCHES "x86|i386|i486|i586|i686")
     set(${result} "ia32")
+  # MIPS architectures
   elseif(arch MATCHES "mipsel")
     set(${result} "mipsel")
   elseif(arch MATCHES "mips(eb)?")
     set(${result} "mips")
+  # RISC-V architectures
+  elseif(arch MATCHES "riscv32|rv32")
+    set(${result} "riscv32")
+  elseif(arch MATCHES "riscv64|rv64")
+    set(${result} "riscv64")
+  elseif(arch MATCHES "riscv")
+    set(${result} "riscv")
+  # AVR architectures
+  elseif(arch MATCHES "avr|atmega|attiny")
+    set(${result} "avr")
+  # MSP430 architectures
+  elseif(arch MATCHES "msp430")
+    set(${result} "msp430")
+  # PIC32 architectures
+  elseif(arch MATCHES "pic32")
+    set(${result} "pic32")
+  # ESP32/ESP8266 architectures
+  elseif(arch MATCHES "xtensa|esp32|esp8266")
+    set(${result} "xtensa")
+  # STM32 architectures
+  elseif(arch MATCHES "stm32|stm8")
+    set(${result} "stm32")
+  # Custom microprocessor architectures
+  elseif(arch MATCHES "8051|z80|6502|68000")
+    set(${result} "legacy")
   else()
     set(${result} "unknown")
   endif()
@@ -175,6 +215,33 @@ function(bare_simulator result)
   return(PROPAGATE ${result})
 endfunction()
 
+function(bare_microcontroller result)
+  bare_platform(platform)
+  bare_arch(arch)
+  bare_environment(environment)
+
+  set(is_mcu NO)
+
+  # Check for embedded platforms
+  if(platform MATCHES "zephyr|arduino|espruino|esp|stm|avr|msp430|pic32|riscv")
+    set(is_mcu YES)
+  endif()
+
+  # Check for microprocessor architectures
+  if(arch MATCHES "cortex|avr|msp430|pic32|xtensa|riscv|legacy")
+    set(is_mcu YES)
+  endif()
+
+  # Check for bare metal environments
+  if(environment MATCHES "bangle2|espruino")
+    set(is_mcu YES)
+  endif()
+
+  set(${result} ${is_mcu})
+
+  return(PROPAGATE ${result})
+endfunction()
+
 function(bare_environment result)
   set(environment "")
 
@@ -182,6 +249,8 @@ function(bare_environment result)
     set(environment "simulator")
   elseif(LINUX AND CMAKE_C_COMPILER_TARGET MATCHES "-(musl(sf))?")
     set(environment "${CMAKE_MATCH_1}")
+  elseif(TOOLCHAIN_TARGET)
+    set(environment "${TOOLCHAIN_TARGET}")
   endif()
 
   set(${result} ${environment})
@@ -273,13 +342,51 @@ function(add_bare_module result)
 
   add_library(${target} OBJECT)
 
-  set_target_properties(
-    ${target}
-    PROPERTIES
-    C_STANDARD 11
-    CXX_STANDARD 20
-    POSITION_INDEPENDENT_CODE ON
-  )
+  # Check if targeting a microcontroller/microprocessor
+  bare_microcontroller(is_mcu)
+
+  if(is_mcu)
+    # Microcontroller/microprocessor-specific settings
+    set_target_properties(
+      ${target}
+      PROPERTIES
+      C_STANDARD 11
+      CXX_STANDARD 20
+      POSITION_INDEPENDENT_CODE OFF
+    )
+    
+    # Add microcontroller/microprocessor-specific compile definitions
+    target_compile_definitions(
+      ${target}
+      PRIVATE
+        BARE_TARGET_IS_MCU=1
+    )
+    
+    # Set optimization for size (common for microcontrollers/microprocessors)
+    target_compile_options(
+      ${target}
+      PRIVATE
+        -Os
+        -ffunction-sections
+        -fdata-sections
+    )
+    
+    # Add linker flags for size optimization
+    target_link_options(
+      ${target}
+      PRIVATE
+        -Wl,--gc-sections
+    )
+  else()
+    # Standard settings for other targets
+    set_target_properties(
+      ${target}
+      PROPERTIES
+      C_STANDARD 11
+      CXX_STANDARD 20
+      POSITION_INDEPENDENT_CODE ON
+    )
+  endif()
 
   target_compile_definitions(
     ${target}
@@ -301,7 +408,12 @@ function(add_bare_module result)
     set(exports OFF)
   endif()
 
-  add_library(${target}_module SHARED)
+  # Use static library for microcontroller targets (no dynamic linking support)
+  if(is_mcu)
+    add_library(${target}_module STATIC)
+  else()
+    add_library(${target}_module SHARED)
+  endif()
 
   set_target_properties(
     ${target}_module
