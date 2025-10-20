@@ -538,20 +538,12 @@ function(link_bare_module receiver specifier)
   else()
     bare_module_target("${source_dir}" target NAME name VERSION version HASH hash)
 
-    string(MAKE_C_IDENTIFIER ${target} id)
-
     target_compile_definitions(
       ${target}
       PRIVATE
         BARE_MODULE_NAME="${name}@${version}"
         BARE_MODULE_REGISTER_CONSTRUCTOR
         BARE_MODULE_CONSTRUCTOR_VERSION=${hash}
-
-        NAPI_MODULE_FILENAME="${name}@${version}"
-        NAPI_MODULE_REGISTER_CONSTRUCTOR
-        NAPI_MODULE_CONSTRUCTOR_VERSION=${hash}
-
-        NODE_GYP_MODULE_NAME=${id}
     )
 
     target_link_libraries(
