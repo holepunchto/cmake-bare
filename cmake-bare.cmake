@@ -261,8 +261,12 @@ function(add_bare_module result)
     EXPORTS
   )
 
+  set(multi_value_keywords
+    INSTALL
+  )
+
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "${option_keywords}" "" ""
+    PARSE_ARGV 1 ARGV "${option_keywords}" "" "${multi_value_keywords}"
   )
 
   download_bare_headers(bare_headers)
@@ -421,6 +425,23 @@ function(add_bare_module result)
       RENAME ${name}.bare.exports
     )
   endif()
+
+  while(TRUE)
+    list(LENGTH ARGV_INSTALL len)
+
+    if(len LESS 2)
+      break()
+    endif()
+
+    list(POP_FRONT ARGV_INSTALL type target)
+
+    if(type MATCHES "TARGET")
+      install(
+        TARGETS ${target}
+        DESTINATION ${host}/${name}
+      )
+    endif()
+  endwhile()
 
   return(PROPAGATE ${result})
 endfunction()
