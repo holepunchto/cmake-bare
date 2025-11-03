@@ -437,7 +437,7 @@ function(add_bare_module result)
 
     if(type MATCHES "TARGET")
       install(
-        FILES $<TARGET_FILE:${target}>
+        TARGETS ${target}
         DESTINATION ${host}/${name}
       )
     endif()
