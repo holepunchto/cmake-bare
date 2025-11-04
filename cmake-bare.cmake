@@ -436,10 +436,36 @@ function(add_bare_module result)
     list(POP_FRONT ARGV_INSTALL type target)
 
     if(type MATCHES "TARGET")
-      install(
-        TARGETS ${target}
-        DESTINATION ${host}/${name}
-      )
+      get_target_property(is_imported ${target} IMPORTED)
+      if(is_imported)
+        # For IMPORTED targets, get the library file location and install the prebuilt file directly.
+        # install(TARGETS, ...) is not supported for IMPORTED targets (e.g. from package managers such as vcpkg).
+        get_target_property(lib_location ${target} IMPORTED_LOCATION)
+        if(NOT lib_location)
+          if(CMAKE_BUILD_TYPE STREQUAL "Release")
+            get_target_property(lib_location ${target} IMPORTED_LOCATION_RELEASE)
+          elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            get_target_property(lib_location ${target} IMPORTED_LOCATION_DEBUG)
+          endif()
+        endif()
+        if(NOT lib_location)
+            message(FATAL_ERROR "IMPORTED target ${target} does not have a valid IMPORTED_LOCATION or IMPORTED_LOCATION_<CONFIG> property set. Cannot determine library file to install. This may indicate a misconfigured package or an unusable IMPORTED target.")
+        endif()
+        if(lib_location AND EXISTS ${lib_location})
+          install(
+            FILES ${lib_location}
+            DESTINATION ${host}/${name}
+          )
+        else()
+          message(WARNING "IMPORTED target ${target} has no valid IMPORTED_LOCATION - skipping install")
+        endif()
+      else()
+        install(
+          TARGETS ${target}
+          LIBRARY
+          DESTINATION ${host}/${name}
+        )
+      endif()
     endif()
   endwhile()
 
