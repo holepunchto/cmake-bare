@@ -1,6 +1,6 @@
 // Delay loader implementation for Windows. This is used to support loading
 // native addons from binaries that don't declare themselves as "bare.exe" as
-// well as loading dynamically linked native addons.
+// well as loading dynamically linked native addons and their dependencies.
 //
 // See https://learn.microsoft.com/en-us/cpp/build/reference/understanding-the-helper-function
 
@@ -15,6 +15,23 @@
 #include <uv.h>
 
 typedef uv_lib_t *(*bare__module_find_fn)(const char *name);
+
+static inline int
+bare__string_equals(LPCSTR a, LPCSTR b) {
+  return _stricmp(a, b) == 0;
+}
+
+static inline int
+bare__string_ends_with(LPCSTR a, LPCSTR b) {
+  size_t a_len = strlen(a);
+  size_t b_len = strlen(b);
+
+  if (b_len > a_len) return 0;
+
+  return bare__string_equals(a + a_len - b_len, b);
+}
+
+static HMODULE bare__module_self = NULL;
 
 static inline HMODULE
 bare__module_main(void) {
@@ -42,19 +59,20 @@ bare__module_find(const char *name) {
   return (HMODULE) lib->handle;
 }
 
-static inline int
-bare__string_equals(LPCSTR a, LPCSTR b) {
-  return _stricmp(a, b) == 0;
-}
+static inline HMODULE
+bare__module_load(const char *dll) {
+  if (bare__module_self == NULL) return NULL;
 
-static inline int
-bare__string_ends_with(LPCSTR a, LPCSTR b) {
-  size_t a_len = strlen(a);
-  size_t b_len = strlen(b);
+  CHAR path[MAX_PATH];
 
-  if (b_len > a_len) return 0;
+  DWORD len = GetModuleFileNameA(bare__module_self, path, MAX_PATH);
 
-  return bare__string_equals(a + a_len - b_len, b);
+  if (bare__string_ends_with(path, ".bare")) path[len - 5] = L'\0';
+
+  strcat_s(path, MAX_PATH, "\\");
+  strcat_s(path, MAX_PATH, dll);
+
+  return LoadLibraryA(path);
 }
 
 static FARPROC WINAPI
@@ -71,6 +89,10 @@ bare__delay_load(unsigned event, PDelayLoadInfo info) {
       return (FARPROC) bare__module_find(dll);
     }
 
+    if (bare__string_ends_with(dll, ".dll")) {
+      return (FARPROC) bare__module_load(dll);
+    }
+
     return NULL;
   }
 
@@ -82,3 +104,10 @@ bare__delay_load(unsigned event, PDelayLoadInfo info) {
 const PfnDliHook __pfnDliNotifyHook2 = bare__delay_load;
 
 const PfnDliHook __pfnDliFailureHook2 = bare__delay_load;
+
+BOOL WINAPI
+DllMain(HINSTANCE handle, DWORD reason, LPVOID reserved) {
+  if (reason == DLL_PROCESS_ATTACH) bare__module_self = handle;
+
+  return TRUE;
+}
