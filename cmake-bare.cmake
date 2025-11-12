@@ -307,6 +307,14 @@ function(add_bare_module result)
 
   add_library(${target}_module SHARED)
 
+  if(APPLE)
+    set(${target}_rpath "@loader_path/${name}")
+  elseif(LINUX)
+    set(${target}_rpath "$ORIGIN/${name}")
+  else()
+    set(${target}_rpath "")
+  endif()
+
   set_target_properties(
     ${target}_module
     PROPERTIES
@@ -322,12 +330,12 @@ function(add_bare_module result)
     IMPORT_PREFIX ""
     IMPORT_SUFFIX ".bare.exports"
 
-    # Remove the runtime search path for ELF binaries and directory portion of
-    # the install name for Mach-O binaries. This ensures that the addon is
-    # identified by the linker only by its logical name.
-    INSTALL_RPATH ""
-    INSTALL_NAME_DIR ""
+    INSTALL_RPATH "${${target}_rpath}"
     BUILD_WITH_INSTALL_RPATH ON
+
+    # Remove the directory portion of the install name for Mach-O binaries. This
+    # ensures that the addon is identified by the linker only by its logical name.
+    INSTALL_NAME_DIR ""
     BUILD_WITH_INSTALL_NAME_DIR ON
 
     # Set the Mach-O compatibility versions for macOS and iOS. This is mostly
