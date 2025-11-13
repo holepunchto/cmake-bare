@@ -443,11 +443,11 @@ function(add_bare_module result)
       break()
     endif()
 
-    list(POP_FRONT ARGV_INSTALL type target)
+    list(POP_FRONT ARGV_INSTALL type value)
 
     if(type MATCHES "TARGET")
       install(
-        FILES $<TARGET_FILE:${target}>
+        FILES $<TARGET_FILE:${value}>
         DESTINATION ${host}/${name}
       )
     endif()
