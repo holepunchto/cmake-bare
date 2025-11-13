@@ -330,6 +330,8 @@ function(add_bare_module result)
     IMPORT_PREFIX ""
     IMPORT_SUFFIX ".bare.exports"
 
+    # Set the runpath of the addon to support loading of runtime dependencies
+    # located in a named directory next to the addon prebuilds.
     INSTALL_RPATH "${${target}_rpath}"
     BUILD_WITH_INSTALL_RPATH ON
 
