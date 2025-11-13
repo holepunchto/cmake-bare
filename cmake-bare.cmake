@@ -309,7 +309,7 @@ function(add_bare_module result)
 
   if(APPLE)
     set(${target}_rpath "@loader_path/${name}")
-  elseif(LINUX OR ANDROID)
+  elseif(LINUX)
     set(${target}_rpath "$ORIGIN/${name}")
   else()
     set(${target}_rpath "")
