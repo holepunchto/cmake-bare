@@ -31,6 +31,19 @@ bare__string_ends_with(LPCSTR a, LPCSTR b) {
   return bare__string_equals(a + a_len - b_len, b);
 }
 
+static inline int
+bare__string_last_index_of(LPCSTR string, CHAR c) {
+  size_t len = strlen(string);
+
+  if (len == 0) return -1;
+
+  for (size_t i = len; i-- > 0;) {
+    if (string[i] == c) return i;
+  }
+
+  return -1;
+}
+
 static HMODULE bare__module_self = NULL;
 
 static inline HMODULE
@@ -67,7 +80,13 @@ bare__module_load(const char *dll) {
 
   DWORD len = GetModuleFileNameA(bare__module_self, path, MAX_PATH);
 
-  if (bare__string_ends_with(path, ".bare")) path[len - 5] = L'\0';
+  if (bare__string_ends_with(path, ".bare")) {
+    path[len - 5] = L'\0';
+  } else {
+    int i = bare__string_last_index_of(path, '\\');
+
+    if (i != -1) path[i] = L'\0';
+  }
 
   strcat_s(path, MAX_PATH, "\\");
   strcat_s(path, MAX_PATH, dll);
