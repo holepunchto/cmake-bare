@@ -446,10 +446,18 @@ function(add_bare_module result)
     list(POP_FRONT ARGV_INSTALL type value)
 
     if(type MATCHES "TARGET")
-      install(
-        FILES $<TARGET_FILE:${value}>
-        DESTINATION ${host}/${name}
-      )
+      if(WIN32)
+        install(
+          FILES $<TARGET_FILE:${value}>
+          DESTINATION ${host}/${name}
+        )
+      else()
+        install(
+          FILES $<TARGET_FILE:${value}>
+          DESTINATION ${host}/${name}
+          RENAME $<TARGET_SONAME_FILE_NAME:${value}>
+        )
+      endif()
     endif()
   endwhile()
 
