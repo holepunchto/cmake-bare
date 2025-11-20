@@ -449,6 +449,7 @@ function(add_bare_module result)
       install(
         FILES $<TARGET_FILE:${value}>
         DESTINATION ${host}/${name}
+        RENAME $<TARGET_SONAME_FILE_NAME:${value}>
       )
     endif()
   endwhile()
