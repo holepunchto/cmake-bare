@@ -446,16 +446,18 @@ function(add_bare_module result)
     list(POP_FRONT ARGV_INSTALL type value)
 
     if(type MATCHES "TARGET")
-      if(WIN32)
+      get_target_property(target_type ${value} TYPE)
+
+      if(target_type MATCHES "SHARED_LIBRARY" AND NOT WIN32)
         install(
           FILES $<TARGET_FILE:${value}>
           DESTINATION ${host}/${name}
+          RENAME $<TARGET_SONAME_FILE_NAME:${value}>
         )
       else()
         install(
           FILES $<TARGET_FILE:${value}>
           DESTINATION ${host}/${name}
-          RENAME $<TARGET_SONAME_FILE_NAME:${value}>
         )
       endif()
     endif()
