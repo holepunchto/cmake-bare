@@ -263,17 +263,25 @@ function(add_bare_module result)
     EXPORTS
   )
 
+  set(single_value_keywords
+    NAME
+  )
+
   set(multi_value_keywords
     INSTALL
   )
 
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "${option_keywords}" "" "${multi_value_keywords}"
+    PARSE_ARGV 1 ARGV "${option_keywords}" "${single_value_keywords}" "${multi_value_keywords}"
   )
 
   download_bare_headers(bare_headers)
 
   bare_module_target("." target NAME name VERSION version)
+
+  if(ARGV_NAME)
+    set(name "${ARGV_NAME}")
+  endif()
 
   string(REGEX MATCH "^[0-9]+" major "${version}")
 
