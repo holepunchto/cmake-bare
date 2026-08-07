@@ -19,13 +19,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-24.04
+          - os: ubuntu-latest
             platform: linux
-          - os: ubuntu-24.04-arm
-            platform: linux
-          - os: macos-14
+          - os: macos-latest
             platform: darwin
-          - os: windows-2022
+          - os: windows-latest
             platform: win32
     runs-on: ${{ matrix.os }}
     name: Test / ${{ matrix.platform }}
