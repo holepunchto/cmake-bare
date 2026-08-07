@@ -436,10 +436,21 @@ function(add_bare_module result)
       # to interposition from Bare's global scope, so a module that vendors
       # symbols Bare also provides binds to Bare's copies instead of its own.
       # Unless the module opts into EXPORTS, localize every defined symbol so it
-      # only ever binds to the code it ships.
+      # only ever binds to the code it ships. The registration entry points that
+      # Bare looks up when loading the addon must remain visible, so keep them
+      # global.
       set(version_script "${CMAKE_CURRENT_BINARY_DIR}/${target}.map")
 
-      file(WRITE "${version_script}" "{ local: *; };\n")
+      file(WRITE "${version_script}"
+        "{\n"
+        "  global:\n"
+        "    bare_get_module_name_v*;\n"
+        "    bare_register_module_v*;\n"
+        "\n"
+        "  local:\n"
+        "    *;\n"
+        "};\n"
+      )
 
       target_link_options(
         ${target}_module
