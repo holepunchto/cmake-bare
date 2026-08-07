@@ -1,5 +1,5 @@
 {
-  "name": "addon",
+  "name": "runtime-dependency",
   "version": "1.2.3",
   "addon": true,
   "files": [
