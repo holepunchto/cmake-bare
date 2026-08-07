@@ -430,6 +430,23 @@ function(add_bare_module result)
       PRIVATE
         -Wl,-undefined,dynamic_lookup
     )
+
+    if(NOT APPLE AND NOT exports)
+      # On ELF platforms every default-visibility symbol is exported and subject
+      # to interposition from Bare's global scope, so a module that vendors
+      # symbols Bare also provides binds to Bare's copies instead of its own.
+      # Unless the module opts into EXPORTS, localize every defined symbol so it
+      # only ever binds to the code it ships.
+      set(version_script "${CMAKE_CURRENT_BINARY_DIR}/${target}.map")
+
+      file(WRITE "${version_script}" "{ local: *; };\n")
+
+      target_link_options(
+        ${target}_module
+        PRIVATE
+          -Wl,--version-script=${version_script}
+      )
+    endif()
   endif()
 
   install(
