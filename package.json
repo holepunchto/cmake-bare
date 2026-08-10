@@ -2,12 +2,30 @@
   "name": "cmake-bare",
   "version": "1.8.2",
   "description": "Bare utilities for CMake",
+  "imports": {
+    "fs": {
+      "bare": "bare-fs",
+      "default": "fs"
+    },
+    "path": {
+      "bare": "bare-path",
+      "default": "path"
+    }
+  },
   "files": [
     "*.cmake",
     "win32/*.c"
   ],
+  "workspaces": [
+    "test/fixtures/*",
+    "test/fixtures/*/*"
+  ],
   "scripts": {
-    "test": "prettier . --check"
+    "format": "prettier --write . && lunte --fix",
+    "lint": "prettier --check . && lunte",
+    "test": "npm run test:bare && npm run test:node",
+    "test:bare": "brittle-bare --coverage test.js",
+    "test:node": "brittle-node --coverage test.js"
   },
   "repository": {
     "type": "git",
@@ -23,6 +41,11 @@
     "cmake-npm": "^1.1.0"
   },
   "devDependencies": {
+    "bare-fs": "^4.4.4",
+    "bare-make": "^1.8.0",
+    "bare-path": "^3.0.0",
+    "brittle": "^3.7.0",
+    "lunte": "^1.8.0",
     "prettier": "^3.3.3",
     "prettier-config-holepunch": "^2.0.0"
   }
