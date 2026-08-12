@@ -10,11 +10,8 @@
 
 #include <windows.h> // Must come first
 
-// Resolve EnumProcessModules against kernel32, so psapi.lib isn't needed.
-#define PSAPI_VERSION 2
-
 #include <delayimp.h>
-#include <psapi.h>
+#include <stdlib.h>
 #include <string.h>
 #include <uv.h>
 
@@ -59,10 +56,26 @@ bare__module_main(void) {
   return main;
 }
 
-// The module hosting the runtime. That is the executable when it is `bare`
-// itself, but an embedder keeps the runtime in a library instead - bare-kit in
-// bare-kit.dll, for example - so fall back to whichever loaded module exports
-// the runtime rather than assuming the executable does.
+typedef BOOL(WINAPI *bare__enum_process_modules_fn)(HANDLE process, HMODULE *modules, DWORD size, LPDWORD needed);
+
+// Pinned, so the cached handle stays valid even if the module is freed.
+static inline HMODULE
+bare__module_pin(HMODULE module, const char *symbol) {
+  HMODULE pinned;
+
+  BOOL ok = GetModuleHandleExW(
+    GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+    (LPCWSTR) GetProcAddress(module, symbol),
+    &pinned
+  );
+
+  return ok ? pinned : module;
+}
+
+// The only module exporting the runtime: the binary itself when Bare is linked
+// statically, otherwise the shared library it lives in. Two of them means two
+// runtimes, and binding an addon to the wrong one silently mixes their state, so
+// prefer failing to load.
 static inline HMODULE
 bare__module_runtime(void) {
   static HMODULE runtime = NULL;
@@ -77,26 +90,49 @@ bare__module_runtime(void) {
     return runtime;
   }
 
-  HMODULE modules[256];
-  DWORD needed;
+  HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
 
-  if (EnumProcessModules(GetCurrentProcess(), modules, sizeof(modules), &needed)) {
+  if (kernel32 == NULL) return NULL;
+
+  // Resolved at run time so no addon carries a static psapi import.
+  bare__enum_process_modules_fn enum_process_modules =
+    (bare__enum_process_modules_fn) GetProcAddress(kernel32, "K32EnumProcessModules");
+
+  if (enum_process_modules == NULL) return NULL;
+
+  HANDLE process = GetCurrentProcess();
+
+  DWORD needed = 0;
+
+  if (!enum_process_modules(process, NULL, 0, &needed) || needed == 0) return NULL;
+
+  HMODULE *modules = malloc(needed);
+
+  if (modules == NULL) return NULL;
+
+  HMODULE found = NULL;
+
+  if (enum_process_modules(process, modules, needed, &needed)) {
     DWORD len = needed / sizeof(HMODULE);
 
-    if (len > 256) len = 256;
-
     for (DWORD i = 0; i < len; i++) {
-      if (GetProcAddress(modules[i], "bare_module_find") != NULL) {
-        runtime = modules[i];
+      if (GetProcAddress(modules[i], "bare_module_find") == NULL) continue;
 
-        return runtime;
+      if (found != NULL) {
+        found = NULL;
+
+        break;
       }
+
+      found = modules[i];
     }
   }
 
-  // Nothing exports it; keep the previous behaviour and let the caller fail on
-  // the missing symbol rather than on a null module.
-  runtime = main;
+  free(modules);
+
+  if (found == NULL) return NULL;
+
+  runtime = bare__module_pin(found, "bare_module_find");
 
   return runtime;
 }
@@ -106,7 +142,11 @@ bare__module_find(const char *name) {
   static bare__module_find_fn find = NULL;
 
   if (find == NULL) {
-    find = (bare__module_find_fn) GetProcAddress(bare__module_runtime(), "bare_module_find");
+    HMODULE runtime = bare__module_runtime();
+
+    if (runtime == NULL) return NULL;
+
+    find = (bare__module_find_fn) GetProcAddress(runtime, "bare_module_find");
 
     if (find == NULL) return NULL;
   }
