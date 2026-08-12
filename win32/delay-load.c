@@ -10,7 +10,11 @@
 
 #include <windows.h> // Must come first
 
+// Resolve EnumProcessModules against kernel32, so psapi.lib isn't needed.
+#define PSAPI_VERSION 2
+
 #include <delayimp.h>
+#include <psapi.h>
 #include <string.h>
 #include <uv.h>
 
@@ -55,12 +59,54 @@ bare__module_main(void) {
   return main;
 }
 
+// The module hosting the runtime. That is the executable when it is `bare`
+// itself, but an embedder keeps the runtime in a library instead - bare-kit in
+// bare-kit.dll, for example - so fall back to whichever loaded module exports
+// the runtime rather than assuming the executable does.
+static inline HMODULE
+bare__module_runtime(void) {
+  static HMODULE runtime = NULL;
+
+  if (runtime != NULL) return runtime;
+
+  HMODULE main = bare__module_main();
+
+  if (GetProcAddress(main, "bare_module_find") != NULL) {
+    runtime = main;
+
+    return runtime;
+  }
+
+  HMODULE modules[256];
+  DWORD needed;
+
+  if (EnumProcessModules(GetCurrentProcess(), modules, sizeof(modules), &needed)) {
+    DWORD len = needed / sizeof(HMODULE);
+
+    if (len > 256) len = 256;
+
+    for (DWORD i = 0; i < len; i++) {
+      if (GetProcAddress(modules[i], "bare_module_find") != NULL) {
+        runtime = modules[i];
+
+        return runtime;
+      }
+    }
+  }
+
+  // Nothing exports it; keep the previous behaviour and let the caller fail on
+  // the missing symbol rather than on a null module.
+  runtime = main;
+
+  return runtime;
+}
+
 static inline HMODULE
 bare__module_find(const char *name) {
   static bare__module_find_fn find = NULL;
 
   if (find == NULL) {
-    find = (bare__module_find_fn) GetProcAddress(bare__module_main(), "bare_module_find");
+    find = (bare__module_find_fn) GetProcAddress(bare__module_runtime(), "bare_module_find");
 
     if (find == NULL) return NULL;
   }
@@ -101,7 +147,7 @@ bare__delay_load(unsigned event, PDelayLoadInfo info) {
     LPCSTR dll = info->szDll;
 
     if (bare__string_equals(dll, "bare.exe") || bare__string_equals(dll, "bare.dll")) {
-      return (FARPROC) bare__module_main();
+      return (FARPROC) bare__module_runtime();
     }
 
     if (bare__string_ends_with(dll, ".bare")) {
