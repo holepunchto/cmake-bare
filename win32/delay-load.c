@@ -11,6 +11,7 @@
 #include <windows.h> // Must come first
 
 #include <delayimp.h>
+#include <stdlib.h>
 #include <string.h>
 #include <uv.h>
 
@@ -55,12 +56,97 @@ bare__module_main(void) {
   return main;
 }
 
+typedef BOOL(WINAPI *bare__enum_process_modules_fn)(HANDLE process, HMODULE *modules, DWORD size, LPDWORD needed);
+
+// Pinned, so the cached handle stays valid even if the module is freed.
+static inline HMODULE
+bare__module_pin(HMODULE module, const char *symbol) {
+  HMODULE pinned;
+
+  BOOL ok = GetModuleHandleExW(
+    GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+    (LPCWSTR) GetProcAddress(module, symbol),
+    &pinned
+  );
+
+  return ok ? pinned : module;
+}
+
+// The only module exporting the runtime: the binary itself when Bare is linked
+// statically, otherwise the shared library it lives in. Two of them means two
+// runtimes, and binding an addon to the wrong one silently mixes their state, so
+// prefer failing to load.
+static inline HMODULE
+bare__module_runtime(void) {
+  static HMODULE runtime = NULL;
+
+  if (runtime != NULL) return runtime;
+
+  HMODULE main = bare__module_main();
+
+  if (GetProcAddress(main, "bare_module_find") != NULL) {
+    runtime = main;
+
+    return runtime;
+  }
+
+  HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
+
+  if (kernel32 == NULL) return NULL;
+
+  // Resolved at run time so no addon carries a static psapi import.
+  bare__enum_process_modules_fn enum_process_modules =
+    (bare__enum_process_modules_fn) GetProcAddress(kernel32, "K32EnumProcessModules");
+
+  if (enum_process_modules == NULL) return NULL;
+
+  HANDLE process = GetCurrentProcess();
+
+  DWORD needed = 0;
+
+  if (!enum_process_modules(process, NULL, 0, &needed) || needed == 0) return NULL;
+
+  HMODULE *modules = malloc(needed);
+
+  if (modules == NULL) return NULL;
+
+  HMODULE found = NULL;
+
+  if (enum_process_modules(process, modules, needed, &needed)) {
+    DWORD len = needed / sizeof(HMODULE);
+
+    for (DWORD i = 0; i < len; i++) {
+      if (GetProcAddress(modules[i], "bare_module_find") == NULL) continue;
+
+      if (found != NULL) {
+        found = NULL;
+
+        break;
+      }
+
+      found = modules[i];
+    }
+  }
+
+  free(modules);
+
+  if (found == NULL) return NULL;
+
+  runtime = bare__module_pin(found, "bare_module_find");
+
+  return runtime;
+}
+
 static inline HMODULE
 bare__module_find(const char *name) {
   static bare__module_find_fn find = NULL;
 
   if (find == NULL) {
-    find = (bare__module_find_fn) GetProcAddress(bare__module_main(), "bare_module_find");
+    HMODULE runtime = bare__module_runtime();
+
+    if (runtime == NULL) return NULL;
+
+    find = (bare__module_find_fn) GetProcAddress(runtime, "bare_module_find");
 
     if (find == NULL) return NULL;
   }
@@ -101,7 +187,7 @@ bare__delay_load(unsigned event, PDelayLoadInfo info) {
     LPCSTR dll = info->szDll;
 
     if (bare__string_equals(dll, "bare.exe") || bare__string_equals(dll, "bare.dll")) {
-      return (FARPROC) bare__module_main();
+      return (FARPROC) bare__module_runtime();
     }
 
     if (bare__string_ends_with(dll, ".bare")) {
