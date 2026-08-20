@@ -177,7 +177,15 @@ bare__module_load(const char *dll) {
   strcat_s(path, MAX_PATH, "\\");
   strcat_s(path, MAX_PATH, dll);
 
-  return LoadLibraryA(path);
+  // The libraries installed next to the addon depend on each other by name and
+  // PE has no runpath, so the loader is told to resolve whatever it loads here
+  // from this directory as well. Without it only the named library is found and
+  // its own dependencies fall back to the ambient search order.
+  return LoadLibraryExA(
+    path,
+    NULL,
+    LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS
+  );
 }
 
 static FARPROC WINAPI
