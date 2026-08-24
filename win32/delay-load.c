@@ -58,18 +58,23 @@ bare__module_main(void) {
 
 typedef BOOL(WINAPI *bare__enum_process_modules_fn)(HANDLE process, HMODULE *modules, DWORD size, LPDWORD needed);
 
-// Pinned, so the cached handle stays valid even if the module is freed.
+// Pin a module so that its handle stays valid for as long as the operating
+// system process lives, no matter who else frees it. An `HMODULE` is the base
+// address of the module, which the loader maps back to the module itself.
+// Returns `NULL` if the module isn't loaded.
 static inline HMODULE
-bare__module_pin(HMODULE module, const char *symbol) {
+bare__module_pin(HMODULE module) {
+  if (module == NULL) return NULL;
+
   HMODULE pinned;
 
   BOOL ok = GetModuleHandleExW(
     GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
-    (LPCWSTR) GetProcAddress(module, symbol),
+    (LPCWSTR) module,
     &pinned
   );
 
-  return ok ? pinned : module;
+  return ok ? pinned : NULL;
 }
 
 // The only module exporting the runtime: the binary itself when Bare is linked
@@ -132,7 +137,11 @@ bare__module_runtime(void) {
 
   if (found == NULL) return NULL;
 
-  runtime = bare__module_pin(found, "bare_module_find");
+  // The module was just enumerated as loaded, so pinning it can't fail. Fall
+  // back to the unpinned handle if it somehow does.
+  runtime = bare__module_pin(found);
+
+  if (runtime == NULL) runtime = found;
 
   return runtime;
 }
@@ -155,7 +164,12 @@ bare__module_find(const char *name) {
 
   if (lib == NULL) return NULL;
 
-  return (HMODULE) lib->handle;
+  // The delay loader binds the imported symbols straight into the import
+  // address table of this module and never asks again, whereas the handle is
+  // only guaranteed to live for as long as the Bare process that loaded the
+  // addon. Pin the module so that the bindings can't be left pointing into an
+  // unmapped library once that process is torn down.
+  return bare__module_pin((HMODULE) lib->handle);
 }
 
 static inline HMODULE
