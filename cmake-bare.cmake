@@ -138,7 +138,7 @@ function(bare_arch result)
     set(arch ${CMAKE_SYSTEM_PROCESSOR})
   endif()
 
-  if(NOT arch)
+  if(NOT arch AND NOT CMAKE_CROSSCOMPILING)
     set(arch ${CMAKE_HOST_SYSTEM_PROCESSOR})
   endif()
 
