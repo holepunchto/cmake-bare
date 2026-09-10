@@ -140,7 +140,7 @@ function(bare_arch result)
     PARSE_ARGV 1 ARGV "HOST" "" ""
   )
 
-  if(ARGV_HOST)
+  if(ARGV_HOST OR (NOT arch AND NOT CMAKE_CROSSCOMPILING))
     set(arch ${CMAKE_HOST_SYSTEM_PROCESSOR})
   else()
     if(APPLE AND CMAKE_OSX_ARCHITECTURES)
