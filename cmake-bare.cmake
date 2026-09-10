@@ -108,10 +108,18 @@ function(download_bare_headers result)
 endfunction()
 
 function(bare_platform result)
-  set(platform ${CMAKE_SYSTEM_NAME})
+  cmake_parse_arguments(
+    PARSE_ARGV 1 ARGV "HOST" "" ""
+  )
 
-  if(NOT platform)
+  if(ARGV_HOST)
     set(platform ${CMAKE_HOST_SYSTEM_NAME})
+  else()
+    set(platform ${CMAKE_SYSTEM_NAME})
+
+    if(NOT platform)
+      set(platform ${CMAKE_HOST_SYSTEM_NAME})
+    endif()
   endif()
 
   string(TOLOWER "${platform}" platform)
@@ -128,18 +136,26 @@ function(bare_platform result)
 endfunction()
 
 function(bare_arch result)
-  if(APPLE AND CMAKE_OSX_ARCHITECTURES)
-    set(arch ${CMAKE_OSX_ARCHITECTURES})
-  elseif(MSVC AND CMAKE_GENERATOR_PLATFORM)
-    set(arch ${CMAKE_GENERATOR_PLATFORM})
-  elseif(ANDROID AND CMAKE_ANDROID_ARCH_ABI)
-    set(arch ${CMAKE_ANDROID_ARCH_ABI})
-  else()
-    set(arch ${CMAKE_SYSTEM_PROCESSOR})
-  endif()
+  cmake_parse_arguments(
+    PARSE_ARGV 1 ARGV "HOST" "" ""
+  )
 
-  if(NOT arch)
+  if(ARGV_HOST)
     set(arch ${CMAKE_HOST_SYSTEM_PROCESSOR})
+  else()
+    if(APPLE AND CMAKE_OSX_ARCHITECTURES)
+      set(arch ${CMAKE_OSX_ARCHITECTURES})
+    elseif(MSVC AND CMAKE_GENERATOR_PLATFORM)
+      set(arch ${CMAKE_GENERATOR_PLATFORM})
+    elseif(ANDROID AND CMAKE_ANDROID_ARCH_ABI)
+      set(arch ${CMAKE_ANDROID_ARCH_ABI})
+    else()
+      set(arch ${CMAKE_SYSTEM_PROCESSOR})
+    endif()
+
+    if(NOT arch)
+      set(arch ${CMAKE_HOST_SYSTEM_PROCESSOR})
+    endif()
   endif()
 
   string(TOLOWER "${arch}" arch)
@@ -166,7 +182,15 @@ function(bare_arch result)
 endfunction()
 
 function(bare_simulator result)
-  set(sysroot ${CMAKE_OSX_SYSROOT})
+  cmake_parse_arguments(
+    PARSE_ARGV 1 ARGV "HOST" "" ""
+  )
+
+  if(ARGV_HOST)
+    set(sysroot "")
+  else()
+    set(sysroot ${CMAKE_OSX_SYSROOT})
+  endif()
 
   if(sysroot MATCHES "iPhoneSimulator")
     set(${result} YES)
@@ -178,12 +202,18 @@ function(bare_simulator result)
 endfunction()
 
 function(bare_environment result)
+  cmake_parse_arguments(
+    PARSE_ARGV 1 ARGV "HOST" "" ""
+  )
+
   set(environment "")
 
-  if(APPLE AND CMAKE_OSX_SYSROOT MATCHES "iPhoneSimulator")
-    set(environment "simulator")
-  elseif(LINUX AND CMAKE_C_COMPILER_TARGET MATCHES "-(musl(sf))?")
-    set(environment "${CMAKE_MATCH_1}")
+  if(NOT ARGV_HOST)
+    if(APPLE AND CMAKE_OSX_SYSROOT MATCHES "iPhoneSimulator")
+      set(environment "simulator")
+    elseif(LINUX AND CMAKE_C_COMPILER_TARGET MATCHES "-(musl(sf))?")
+      set(environment "${CMAKE_MATCH_1}")
+    endif()
   endif()
 
   set(${result} ${environment})
@@ -192,9 +222,19 @@ function(bare_environment result)
 endfunction()
 
 function(bare_target result)
-  bare_platform(platform)
-  bare_arch(arch)
-  bare_environment(environment)
+  cmake_parse_arguments(
+    PARSE_ARGV 1 ARGV "HOST" "" ""
+  )
+
+  if(ARGV_HOST)
+    set(host HOST)
+  else()
+    set(host)
+  endif()
+
+  bare_platform(platform ${host})
+  bare_arch(arch ${host})
+  bare_environment(environment ${host})
 
   set(target ${platform}-${arch})
 
