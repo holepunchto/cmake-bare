@@ -12,25 +12,25 @@ find_package(cmake-bare REQUIRED PATHS node_modules/cmake-bare)
 
 ## API
 
-#### `bare_platform(<result>)`
+#### `bare_platform(<result> [HOST])`
 
-Write the current compilation target platform to the `<result>` variable.
+Write the current compilation target platform to the `<result>` variable. Pass the `HOST` option to write the build host platform instead.
 
-#### `bare_arch(<result>)`
+#### `bare_arch(<result> [HOST])`
 
-Write the current compilation target architecture to the `<result>` variable.
+Write the current compilation target architecture to the `<result>` variable. Pass the `HOST` option to write the build host architecture instead.
 
-#### `bare_simulator(<result>)`
+#### `bare_simulator(<result> [HOST])`
 
-Write whether or not the current compilation target is a simulator to the `<result>` variable.
+Write whether or not the current compilation target is a simulator to the `<result>` variable. Pass the `HOST` option to write whether the build host is a simulator instead, which it never is.
 
-#### `bare_environment(<result>)`
+#### `bare_environment(<result> [HOST])`
 
-Write the current compilation target environment to the `<result>` variable.
+Write the current compilation target environment to the `<result>` variable. Pass the `HOST` option to write the build host environment instead.
 
-#### `bare_target(<result>)`
+#### `bare_target(<result> [HOST])`
 
-Write the current compilation target to the `<result>` variable.
+Write the current compilation target to the `<result>` variable. Pass the `HOST` option to write the build host target instead.
 
 #### `bare_module_target(<directory> <result> [NAME <var>] [VERSION <var>] [HASH <var>])`
 
