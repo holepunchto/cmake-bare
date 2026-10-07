@@ -76,6 +76,12 @@ function(download_bare_headers result)
     PARSE_ARGV 1 ARGV "" "${one_value_keywords}" ""
   )
 
+  if(BARE_HEADERS)
+    set(${result} "${BARE_HEADERS}")
+
+    return(PROPAGATE ${result})
+  endif()
+
   if(NOT ARGV_DESTINATION)
     set(ARGV_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/_bare")
   endif()
@@ -124,7 +130,7 @@ function(bare_platform result)
 
   string(TOLOWER "${platform}" platform)
 
-  if(platform MATCHES "darwin|ios|linux|android")
+  if(platform MATCHES "darwin|ios|linux|android|wasi")
     set(${result} ${platform})
   elseif(platform MATCHES "windows")
     set(${result} "win32")
@@ -174,6 +180,8 @@ function(bare_arch result)
     set(${result} "mipsel")
   elseif(arch MATCHES "mips(eb)?")
     set(${result} "mips")
+  elseif(arch MATCHES "wasm32")
+    set(${result} "wasm32")
   else()
     set(${result} "unknown")
   endif()
@@ -348,6 +356,14 @@ function(add_bare_module result)
   )
 
   set(${result} ${target})
+
+  bare_target(host)
+
+  if(host MATCHES "^wasi-")
+    add_bare_wasm_module(${target} ${name} ${major} "${bare_headers}" ${host} ${ARGV_INSTALL})
+
+    return(PROPAGATE ${result})
+  endif()
 
   if(ARGV_EXPORTS)
     set(exports ON)
@@ -542,6 +558,54 @@ function(add_bare_module result)
   endwhile()
 
   return(PROPAGATE ${result})
+endfunction()
+
+# A WebAssembly addon is a reactor module rather than a shared library. It may
+# only import the functions that Bare implements for it, as listed beside the
+# headers, so that any other import fails to link rather than to load.
+function(add_bare_wasm_module target name major bare_headers host)
+  if(ARGN)
+    message(FATAL_ERROR "WebAssembly addons cannot install runtime dependencies")
+  endif()
+
+  set_target_properties(
+    ${target}
+    PROPERTIES
+    POSITION_INDEPENDENT_CODE OFF
+  )
+
+  add_executable(${target}_module)
+
+  set_target_properties(
+    ${target}_module
+    PROPERTIES
+    OUTPUT_NAME ${name}@${major}
+    SUFFIX ".wasm"
+  )
+
+  target_link_libraries(
+    ${target}_module
+    PRIVATE
+      ${target}
+  )
+
+  target_link_options(
+    ${target}_module
+    PRIVATE
+      -mexec-model=reactor
+      "-Wl,--allow-undefined-file=${bare_headers}/bare/wasm.syms"
+      -Wl,--export=bare_register_module_v0
+      -Wl,--export-if-defined=bare_get_module_name_v0
+      -Wl,--export=malloc
+      -Wl,--export=free
+      -Wl,--export-table
+  )
+
+  install(
+    FILES $<TARGET_FILE:${target}_module>
+    DESTINATION ${host}
+    RENAME ${name}.wasm
+  )
 endfunction()
 
 function(include_bare_module specifier result)
