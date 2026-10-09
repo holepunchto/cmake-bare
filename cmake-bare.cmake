@@ -76,12 +76,6 @@ function(download_bare_headers result)
     PARSE_ARGV 1 ARGV "" "${one_value_keywords}" ""
   )
 
-  if(BARE_HEADERS)
-    set(${result} "${BARE_HEADERS}")
-
-    return(PROPAGATE ${result})
-  endif()
-
   if(NOT ARGV_DESTINATION)
     set(ARGV_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/_bare")
   endif()
@@ -360,7 +354,7 @@ function(add_bare_module result)
   bare_target(host)
 
   if(host MATCHES "^wasi-")
-    add_bare_wasm_module(${target} ${name} ${major} "${bare_headers}" ${host} ${ARGV_INSTALL})
+    add_bare_wasm_module(${target} ${name} ${major} ${host} ${ARGV_INSTALL})
 
     return(PROPAGATE ${result})
   endif()
@@ -560,10 +554,8 @@ function(add_bare_module result)
   return(PROPAGATE ${result})
 endfunction()
 
-# A WebAssembly addon is a reactor module rather than a shared library. It may
-# only import the functions that Bare implements for it, as listed beside the
-# headers, so that any other import fails to link rather than to load.
-function(add_bare_wasm_module target name major bare_headers host)
+# A WebAssembly addon is a reactor module rather than a shared library.
+function(add_bare_wasm_module target name major host)
   if(ARGN)
     message(FATAL_ERROR "WebAssembly addons cannot install runtime dependencies")
   endif()
@@ -593,7 +585,7 @@ function(add_bare_wasm_module target name major bare_headers host)
     ${target}_module
     PRIVATE
       -mexec-model=reactor
-      "-Wl,--allow-undefined-file=${bare_headers}/bare/wasm.syms"
+      -Wl,--allow-undefined
       -Wl,--export=bare_register_module_v0
       -Wl,--export-if-defined=bare_get_module_name_v0
       -Wl,--export=malloc
