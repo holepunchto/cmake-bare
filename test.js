@@ -2,6 +2,7 @@ const { build } = require('./test/helpers')
 
 build('test/fixtures/addon')
 build('test/fixtures/scoped-addon')
+build('test/fixtures/provided-headers')
 build('test/fixtures/runtime-dependency')
 build('test/fixtures/transitive-dependency')
 build('test/fixtures/dependent-addon/a')
