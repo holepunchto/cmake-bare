@@ -56,6 +56,19 @@ To change the working directory from which `<specifier>` is resolved, pass the `
 
 Link all Bare native addons declared as dependencies in the `package.json` manifest of the current source directory to the library target identified by `<receiver>`. Arguments are the same of for `link_bare_module()`.
 
+#### `link_bare_headers(<target>)`
+
+Make the Bare headers available to `<target>`. If a `bare::headers` target exists it is linked, otherwise the `bare-headers` package is downloaded.
+
+### Providing Bare
+
+By default, native addons are compiled against a download of the `bare-headers` package and, on Windows, linked against the import library of a download of the `bare-runtime` package. A build that provides its own Bare, such as Bare itself or an embedder compiling Bare from source, can instead define the following targets before adding any native addons:
+
+- `bare::headers`: An interface library that provides the Bare headers as include directories.
+- `bare::import_library`: On Windows, an interface library that links the import library of the Bare runtime.
+
+As target names containing `::` are reserved for aliases and imported targets, define each as either an alias of a regular target or a global imported target. Native addons will then be compiled and linked against the provided Bare without downloading anything.
+
 ## License
 
 Apache-2.0

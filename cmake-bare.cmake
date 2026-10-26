@@ -16,32 +16,40 @@ function(download_bare result)
   )
 
   if(NOT ARGV_DESTINATION)
-    set(ARGV_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/_bare")
+    set(ARGV_DESTINATION "${CMAKE_BINARY_DIR}/_bare")
   endif()
 
   if(NOT ARGV_VERSION)
     set(ARGV_VERSION "latest")
   endif()
 
-  if(NOT EXISTS "${ARGV_DESTINATION}/package.json")
-    file(WRITE "${ARGV_DESTINATION}/package.json" "{}")
-  endif()
-
   bare_target(target)
 
-  install_node_module(
-    bare-runtime-${target}
-    VERSION ${ARGV_VERSION}
-    SAVE
-    FORCE
-    WORKING_DIRECTORY "${ARGV_DESTINATION}"
-  )
+  set(key "bare_runtime:${ARGV_DESTINATION}:${ARGV_VERSION}")
 
-  resolve_node_module(
-    bare-runtime-${target}
-    output
-    WORKING_DIRECTORY "${ARGV_DESTINATION}"
-  )
+  get_property(output GLOBAL PROPERTY "${key}")
+
+  if(NOT output)
+    if(NOT EXISTS "${ARGV_DESTINATION}/package.json")
+      file(WRITE "${ARGV_DESTINATION}/package.json" "{}")
+    endif()
+
+    install_node_module(
+      bare-runtime-${target}
+      VERSION ${ARGV_VERSION}
+      SAVE
+      FORCE
+      WORKING_DIRECTORY "${ARGV_DESTINATION}"
+    )
+
+    resolve_node_module(
+      bare-runtime-${target}
+      output
+      WORKING_DIRECTORY "${ARGV_DESTINATION}"
+    )
+
+    set_property(GLOBAL PROPERTY "${key}" "${output}")
+  endif()
 
   set(import_file ${ARGV_IMPORT_FILE})
 
@@ -77,34 +85,62 @@ function(download_bare_headers result)
   )
 
   if(NOT ARGV_DESTINATION)
-    set(ARGV_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/_bare")
+    set(ARGV_DESTINATION "${CMAKE_BINARY_DIR}/_bare")
   endif()
 
   if(NOT ARGV_VERSION)
     set(ARGV_VERSION "latest")
   endif()
 
-  if(NOT EXISTS "${ARGV_DESTINATION}/package.json")
-    file(WRITE "${ARGV_DESTINATION}/package.json" "{}")
+  set(key "bare_headers:${ARGV_DESTINATION}:${ARGV_VERSION}")
+
+  get_property(output GLOBAL PROPERTY "${key}")
+
+  if(NOT output)
+    if(NOT EXISTS "${ARGV_DESTINATION}/package.json")
+      file(WRITE "${ARGV_DESTINATION}/package.json" "{}")
+    endif()
+
+    install_node_module(
+      bare-headers
+      VERSION ${ARGV_VERSION}
+      SAVE
+      FORCE
+      WORKING_DIRECTORY "${ARGV_DESTINATION}"
+    )
+
+    resolve_node_module(
+      bare-headers
+      output
+      WORKING_DIRECTORY "${ARGV_DESTINATION}"
+    )
+
+    set_property(GLOBAL PROPERTY "${key}" "${output}")
   endif()
-
-  install_node_module(
-    bare-headers
-    VERSION ${ARGV_VERSION}
-    SAVE
-    FORCE
-    WORKING_DIRECTORY "${ARGV_DESTINATION}"
-  )
-
-  resolve_node_module(
-    bare-headers
-    output
-    WORKING_DIRECTORY "${ARGV_DESTINATION}"
-  )
 
   cmake_path(APPEND output include OUTPUT_VARIABLE ${result})
 
   return(PROPAGATE ${result})
+endfunction()
+
+# A build that provides its own Bare defines a `bare::headers` target so that
+# addons are compiled against the headers of that Bare rather than a download.
+function(link_bare_headers target)
+  if(TARGET bare::headers)
+    target_link_libraries(
+      ${target}
+      PRIVATE
+        bare::headers
+    )
+  else()
+    download_bare_headers(include_dir)
+
+    target_include_directories(
+      ${target}
+      PRIVATE
+        "${include_dir}"
+    )
+  endif()
 endfunction()
 
 function(bare_platform result)
@@ -317,8 +353,6 @@ function(add_bare_module result)
     PARSE_ARGV 1 ARGV "${option_keywords}" "${single_value_keywords}" "${multi_value_keywords}"
   )
 
-  download_bare_headers(bare_headers)
-
   bare_module_target("." target NAME name VERSION version)
 
   if(ARGV_NAME)
@@ -343,11 +377,7 @@ function(add_bare_module result)
       BARE_MODULE_NAME="${name}@${version}"
   )
 
-  target_include_directories(
-    ${target}
-    PRIVATE
-      ${bare_headers}
-  )
+  link_bare_headers(${target})
 
   set(${result} ${target})
 
@@ -420,17 +450,34 @@ function(add_bare_module result)
   bare_target(host)
 
   if(host MATCHES "win32")
-    download_bare(bare_bin IMPORT_FILE bare_lib)
+    # A build that provides its own Bare defines a `bare::import_library` target
+    # so that addons link against the import library of that Bare rather than
+    # a download.
+    if(TARGET bare::import_library)
+      target_link_libraries(
+        ${target}_module
+        PRIVATE
+          bare::import_library
+      )
+    else()
+      download_bare(bare_bin IMPORT_FILE bare_lib)
 
-    add_library(${target}_import_library SHARED IMPORTED)
+      add_library(${target}_import_library SHARED IMPORTED)
 
-    set_target_properties(
-      ${target}_import_library
-      PROPERTIES
-      ENABLE_EXPORTS ON
-      IMPORTED_LOCATION "${bare_bin}"
-      IMPORTED_IMPLIB "${bare_lib}"
-    )
+      set_target_properties(
+        ${target}_import_library
+        PROPERTIES
+        ENABLE_EXPORTS ON
+        IMPORTED_LOCATION "${bare_bin}"
+        IMPORTED_IMPLIB "${bare_lib}"
+      )
+
+      target_link_libraries(
+        ${target}_module
+        PRIVATE
+          ${target}_import_library
+      )
+    endif()
 
     if(NOT TARGET bare_delay_load)
       add_library(bare_delay_load STATIC)
@@ -441,11 +488,7 @@ function(add_bare_module result)
           "${bare_module_dir}/win32/delay-load.c"
       )
 
-      target_include_directories(
-        bare_delay_load
-        PRIVATE
-          ${bare_headers}
-      )
+      link_bare_headers(bare_delay_load)
 
       target_link_libraries(
         bare_delay_load
@@ -463,8 +506,6 @@ function(add_bare_module result)
 
     target_link_libraries(
       ${target}_module
-      PRIVATE
-        ${target}_import_library
       PUBLIC
         bare_delay_load
     )
