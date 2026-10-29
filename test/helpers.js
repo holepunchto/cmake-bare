@@ -1,4 +1,5 @@
 const test = require('brittle')
+const fs = require('fs')
 const path = require('path')
 const make = require('bare-make')
 
@@ -6,7 +7,9 @@ const modules = path.resolve(__dirname, '..', 'node_modules')
 
 const isBare = typeof Bare !== 'undefined'
 
-exports.build = function build(fixture) {
+exports.build = function build(fixture, opts = {}) {
+  const { install = true } = opts
+
   test(fixture, { timeout: 300000 }, async (t) => {
     const cwd = path.resolve(__dirname, '..', fixture)
 
@@ -23,7 +26,9 @@ exports.build = function build(fixture) {
 
     await make.install({ cwd, build: 'build', prefix: 'prebuilds', stdio: 'inherit' })
 
-    if (isBare) {
+    if (!install) {
+      t.absent(fs.existsSync(path.join(cwd, 'prebuilds')), 'installs nothing')
+    } else if (isBare) {
       t.ok(require(path.join(cwd, 'index.js')), 'loads')
     } else {
       t.pass('built')

@@ -36,9 +36,9 @@ Write the current compilation target to the `<result>` variable. Pass the `HOST`
 
 Determine the CMake library target name of the module in `<directory>` and write the result to the `<result>` variable. The `NAME`, `VERSION`, and `HASH` arguments can be passed to access specific portions of the target name which will be of the format `${name}-${version}-${hash}`.
 
-#### `add_bare_module(<result> [EXPORTS] [NAME <name>] [INSTALL [TARGET <target>]...])`
+#### `add_bare_module(<result> [EXPORTS] [NAME <name>] [INSTALL OFF | INSTALL [TARGET <target>]...])`
 
-Add a Bare native addon target and write the target name to the `<result>` variable.
+Add a Bare native addon target and write the target name to the `<result>` variable. Pass `INSTALL OFF` to add no install rules for the native addon, such as when it's only used by tests.
 
 #### `include_bare_module(<specifier> <result> [PREBUILD] [SOURCE_DIR <var>] [BINARY_DIR <var>] [WORKING_DIRECTORY <path>])`
 
