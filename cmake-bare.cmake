@@ -359,6 +359,13 @@ function(add_bare_module result)
     set(name "${ARGV_NAME}")
   endif()
 
+  if(ARGV_INSTALL STREQUAL "OFF")
+    set(install OFF)
+    set(ARGV_INSTALL)
+  else()
+    set(install ON)
+  endif()
+
   string(REGEX MATCH "^[0-9]+" major "${version}")
 
   add_library(${target} OBJECT)
@@ -384,7 +391,7 @@ function(add_bare_module result)
   bare_target(host)
 
   if(host MATCHES "^wasi-")
-    add_bare_wasm_module(${target} ${name} ${major} ${host} ${ARGV_INSTALL})
+    add_bare_wasm_module(${target} ${name} ${major} ${host} ${install} ${ARGV_INSTALL})
 
     return(PROPAGATE ${result})
   endif()
@@ -551,6 +558,10 @@ function(add_bare_module result)
     endif()
   endif()
 
+  if(NOT install)
+    return(PROPAGATE ${result})
+  endif()
+
   install(
     FILES $<TARGET_FILE:${target}_module>
     DESTINATION ${host}
@@ -596,7 +607,7 @@ function(add_bare_module result)
 endfunction()
 
 # A WebAssembly addon is a reactor module rather than a shared library.
-function(add_bare_wasm_module target name major host)
+function(add_bare_wasm_module target name major host install)
   if(ARGN)
     message(FATAL_ERROR "WebAssembly addons cannot install runtime dependencies")
   endif()
@@ -634,11 +645,13 @@ function(add_bare_wasm_module target name major host)
       -Wl,--export-table
   )
 
-  install(
-    FILES $<TARGET_FILE:${target}_module>
-    DESTINATION ${host}
-    RENAME ${name}.wasm
-  )
+  if(install)
+    install(
+      FILES $<TARGET_FILE:${target}_module>
+      DESTINATION ${host}
+      RENAME ${name}.wasm
+    )
+  endif()
 endfunction()
 
 function(include_bare_module specifier result)
