@@ -160,7 +160,7 @@ function(bare_platform result)
 
   string(TOLOWER "${platform}" platform)
 
-  if(platform MATCHES "darwin|ios|linux|android|wasi")
+  if(platform MATCHES "darwin|ios|linux|android|wasi|freertos")
     set(${result} ${platform})
   elseif(platform MATCHES "windows")
     set(${result} "win32")
@@ -198,6 +198,8 @@ function(bare_arch result)
 
   if(arch MATCHES "arm64|aarch64")
     set(${result} "arm64")
+  elseif(arch MATCHES "armv8m")
+    set(${result} "armv8m")
   elseif(arch MATCHES "armv7-a|armeabi-v7a")
     set(${result} "arm")
   elseif(arch MATCHES "x64|x86_64|amd64")
@@ -206,6 +208,8 @@ function(bare_arch result)
     set(${result} "ia32")
   elseif(arch MATCHES "riscv64")
     set(${result} "riscv64")
+  elseif(arch MATCHES "riscv32")
+    set(${result} "riscv32")
   elseif(arch MATCHES "mipsel")
     set(${result} "mipsel")
   elseif(arch MATCHES "mips(eb)?")
@@ -392,6 +396,18 @@ function(add_bare_module result)
 
   if(host MATCHES "^wasi-")
     add_bare_wasm_module(${target} ${name} ${major} ${host} ${install} ${ARGV_INSTALL})
+
+    return(PROPAGATE ${result})
+  endif()
+
+  # FreeRTOS has no dynamic loader, so addons are only ever linked statically
+  # from the object library.
+  if(host MATCHES "^freertos-")
+    set_target_properties(
+      ${target}
+      PROPERTIES
+      POSITION_INDEPENDENT_CODE OFF
+    )
 
     return(PROPAGATE ${result})
   endif()
