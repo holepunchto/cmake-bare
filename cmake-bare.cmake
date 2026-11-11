@@ -562,6 +562,7 @@ function(add_bare_module result)
         "  global:\n"
         "    bare_get_module_name_v*;\n"
         "    bare_register_module_v*;\n"
+        "    napi_register_module_v*;\n"
         "\n"
         "  local:\n"
         "    *;\n"
