@@ -1,6 +1,6 @@
 {
   "name": "cmake-bare",
-  "version": "1.14.0",
+  "version": "1.14.1",
   "description": "Bare utilities for CMake",
   "imports": {
     "fs": {
