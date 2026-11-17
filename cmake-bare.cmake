@@ -506,34 +506,24 @@ function(add_bare_module result)
   bare_target(host)
 
   if(host MATCHES "win32")
-    # A build that provides its own Bare defines a `bare::import_library` target
-    # so that addons link against the import library of that Bare rather than
-    # a download.
-    if(TARGET bare::import_library)
-      target_link_libraries(
-        ${target}_module
-        PRIVATE
-          bare::import_library
-      )
-    else()
+    if(NOT TARGET bare::shared)
       download_bare(bare_bin IMPORT_FILE bare_lib)
 
-      add_library(${target}_import_library SHARED IMPORTED)
+      add_library(bare::shared SHARED IMPORTED GLOBAL)
 
       set_target_properties(
-        ${target}_import_library
+        bare::shared
         PROPERTIES
-        ENABLE_EXPORTS ON
         IMPORTED_LOCATION "${bare_bin}"
         IMPORTED_IMPLIB "${bare_lib}"
       )
-
-      target_link_libraries(
-        ${target}_module
-        PRIVATE
-          ${target}_import_library
-      )
     endif()
+
+    target_link_libraries(
+      ${target}_module
+      PRIVATE
+        bare::shared
+    )
 
     if(NOT TARGET bare_delay_load)
       add_library(bare_delay_load STATIC)
