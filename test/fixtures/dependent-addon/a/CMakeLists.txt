@@ -4,7 +4,7 @@ find_package(cmake-bare REQUIRED PATHS node_modules/cmake-bare)
 
 project(bare_addon_a C)
 
-add_bare_module(addon_a EXPORTS)
+add_bare_module(addon_a EXPORTS_FROM symbols.json)
 
 target_sources(
   ${addon_a}
