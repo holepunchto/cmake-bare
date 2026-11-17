@@ -36,7 +36,7 @@ Write the current compilation target to the `<result>` variable. Pass the `HOST`
 
 Determine the CMake library target name of the module in `<directory>` and write the result to the `<result>` variable. The `NAME`, `VERSION`, and `HASH` arguments can be passed to access specific portions of the target name which will be of the format `${name}-${version}-${hash}`.
 
-#### `add_bare_module(<result> [SOURCES <files>...] [LINK <libraries>...] [EXPORTS [<symbols>...]] [EXPORTS_FILE <path>] [NAME <name>] [INSTALL OFF | INSTALL [TARGET <target> | FILE <path> | DIR <path> | PRIVACY_MANIFEST <path>]...])`
+#### `add_bare_module(<result> [SOURCES <files>...] [LINK <libraries>...] [EXPORTS [<symbols>...]] [EXPORTS_FROM <path>] [NAME <name>] [INSTALL OFF | INSTALL [TARGET <target> | FILE <path> | DIR <path> | PRIVACY_MANIFEST <path>]...])`
 
 Add a Bare native addon target and write the target name to the `<result>` variable. Pass `INSTALL OFF` to add no install rules for the native addon, such as when it's only used by tests.
 
@@ -44,7 +44,7 @@ Add a Bare native addon target and write the target name to the `<result>` varia
 
 To ship other files with the native addon, pass them to `INSTALL`. They're installed into a `<name>` directory next to the native addon. `TARGET` installs the file built by a target, such as a shared library the native addon links. `FILE` installs a single file. `DIR` installs a directory the same way as `install(DIRECTORY)`, so a trailing slash installs only its contents. `PRIVACY_MANIFEST` installs an Apple privacy manifest as `PrivacyInfo.xcprivacy`, but only for Apple targets. WebAssembly addons accept `FILE` and `DIR`, but not `TARGET`.
 
-By default, the native addon exports only the symbols that Bare needs to load it. To let other native addons link against it, list the symbols to export with `EXPORTS`, or with `EXPORTS_FILE`, which takes a JSON array of strings or a file with one symbol per line:
+By default, the native addon exports only the symbols that Bare needs to load it. To let other native addons link against it, list the symbols to export with `EXPORTS`, or with `EXPORTS_FROM`, which takes a JSON array of strings or a file with one symbol per line:
 
 ```json
 ["addon_fn", "addon_other_fn"]

@@ -345,7 +345,7 @@ endfunction()
 function(add_bare_module result)
   set(single_value_keywords
     NAME
-    EXPORTS_FILE
+    EXPORTS_FROM
   )
 
   set(multi_value_keywords
@@ -361,8 +361,8 @@ function(add_bare_module result)
 
   set(symbols ${ARGV_EXPORTS})
 
-  if(ARGV_EXPORTS_FILE)
-    read_bare_module_symbols("${ARGV_EXPORTS_FILE}" file_symbols)
+  if(ARGV_EXPORTS_FROM)
+    read_bare_module_symbols("${ARGV_EXPORTS_FROM}" file_symbols)
 
     list(APPEND symbols ${file_symbols})
   endif()
