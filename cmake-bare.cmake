@@ -176,7 +176,7 @@ function(bare_arch result)
     PARSE_ARGV 1 ARGV "HOST" "" ""
   )
 
-  if(ARGV_HOST OR (NOT arch AND NOT CMAKE_CROSSCOMPILING))
+  if(ARGV_HOST)
     set(arch ${CMAKE_HOST_SYSTEM_PROCESSOR})
   else()
     if(APPLE AND CMAKE_OSX_ARCHITECTURES)
@@ -189,7 +189,7 @@ function(bare_arch result)
       set(arch ${CMAKE_SYSTEM_PROCESSOR})
     endif()
 
-    if(NOT arch)
+    if(NOT arch AND NOT CMAKE_CROSSCOMPILING)
       set(arch ${CMAKE_HOST_SYSTEM_PROCESSOR})
     endif()
   endif()
@@ -352,6 +352,8 @@ function(add_bare_module result)
   )
 
   set(multi_value_keywords
+    SOURCES
+    LINK
     INSTALL
   )
 
@@ -391,6 +393,22 @@ function(add_bare_module result)
   )
 
   link_bare_headers(${target})
+
+  target_sources(
+    ${target}
+    PRIVATE
+      ${ARGV_SOURCES}
+  )
+
+  # Addons link the static variant of libraries, so that they are self-contained
+  # both as shared libraries and when linked into another target.
+  list(TRANSFORM ARGV_LINK REPLACE "::<TYPE>$" "::static")
+
+  target_link_libraries(
+    ${target}
+    PRIVATE
+      ${ARGV_LINK}
+  )
 
   set(${result} ${target})
 
@@ -595,16 +613,26 @@ function(add_bare_module result)
     )
   endif()
 
-  while(TRUE)
-    list(LENGTH ARGV_INSTALL len)
+  install_bare_module_files(${host} ${name} ${ARGV_INSTALL})
 
-    if(len LESS 2)
+  return(PROPAGATE ${result})
+endfunction()
+
+function(install_bare_module_files host name)
+  while(TRUE)
+    list(LENGTH ARGN len)
+
+    if(len EQUAL 0)
       break()
     endif()
 
-    list(POP_FRONT ARGV_INSTALL type value)
+    if(len EQUAL 1)
+      message(FATAL_ERROR "INSTALL ${ARGN} requires a value")
+    endif()
 
-    if(type MATCHES "TARGET")
+    list(POP_FRONT ARGN type value)
+
+    if(type STREQUAL "TARGET")
       get_target_property(target_type ${value} TYPE)
 
       if(target_type MATCHES "SHARED_LIBRARY" AND NOT WIN32)
@@ -619,15 +647,33 @@ function(add_bare_module result)
           DESTINATION ${host}/${name}
         )
       endif()
+    elseif(type STREQUAL "FILE")
+      install(
+        FILES ${value}
+        DESTINATION ${host}/${name}
+      )
+    elseif(type STREQUAL "DIR")
+      install(
+        DIRECTORY ${value}
+        DESTINATION ${host}/${name}
+      )
+    elseif(type STREQUAL "PRIVACY_MANIFEST")
+      if(host MATCHES "^(darwin|ios|watchos)-")
+        install(
+          FILES ${value}
+          DESTINATION ${host}/${name}
+          RENAME PrivacyInfo.xcprivacy
+        )
+      endif()
+    else()
+      message(FATAL_ERROR "Unknown INSTALL type '${type}'")
     endif()
   endwhile()
-
-  return(PROPAGATE ${result})
 endfunction()
 
 # A WebAssembly addon is a reactor module rather than a shared library.
 function(add_bare_wasm_module target name major host install)
-  if(ARGN)
+  if("TARGET" IN_LIST ARGN)
     message(FATAL_ERROR "WebAssembly addons cannot install runtime dependencies")
   endif()
 
@@ -670,6 +716,8 @@ function(add_bare_wasm_module target name major host install)
       DESTINATION ${host}
       RENAME ${name}.wasm
     )
+
+    install_bare_module_files(${host} ${name} ${ARGN})
   endif()
 endfunction()
 
@@ -769,6 +817,8 @@ function(link_bare_module receiver specifier)
     set(PREBUILD)
   endif()
 
+  resolve_bare_module_receivers(${receiver} receivers)
+
   include_bare_module(
     ${specifier}
     target
@@ -778,11 +828,13 @@ function(link_bare_module receiver specifier)
   )
 
   if(ARGV_SHARED)
-    target_link_libraries(
-      ${receiver}
-      PRIVATE
-        ${target}_module
-    )
+    foreach(receiver IN LISTS receivers)
+      target_link_libraries(
+        ${receiver}
+        PRIVATE
+          ${target}_module
+      )
+    endforeach()
   else()
     bare_module_target("${source_dir}" target NAME name VERSION version HASH hash)
 
@@ -794,14 +846,65 @@ function(link_bare_module receiver specifier)
         BARE_MODULE_CONSTRUCTOR_VERSION=${hash}
     )
 
-    target_link_libraries(
-      ${receiver}
-      PRIVATE
-        $<TARGET_OBJECTS:${target}>
-      PRIVATE
-        ${target}
-    )
+    foreach(receiver IN LISTS receivers)
+      get_target_property(type ${receiver} TYPE)
+
+      # A static library passes the objects it links on to its consumers on top
+      # of archiving them, which would link the addon twice. Linking the object
+      # library directly instead archives its objects without passing them on.
+      if(type STREQUAL "STATIC_LIBRARY")
+        target_link_libraries(
+          ${receiver}
+          PRIVATE
+            ${target}
+        )
+      else()
+        target_link_libraries(
+          ${receiver}
+          PRIVATE
+            $<TARGET_OBJECTS:${target}>
+          PRIVATE
+            ${target}
+        )
+      endif()
+    endforeach()
   endif()
+endfunction()
+
+# Resolve the targets that `<receiver>` names, following aliases, which can't be
+# linked to. A receiver of the form `<name>::<TYPE>` names each of the
+# `<name>::static` and `<name>::shared` libraries that exist, as created by
+# `add_library_targets()` from `cmake-prelude`.
+function(resolve_bare_module_receivers receiver result)
+  if(receiver MATCHES "^(.+)::<TYPE>$")
+    set(candidates)
+
+    foreach(type IN ITEMS static shared)
+      if(TARGET ${CMAKE_MATCH_1}::${type})
+        list(APPEND candidates ${CMAKE_MATCH_1}::${type})
+      endif()
+    endforeach()
+
+    if(NOT candidates)
+      message(FATAL_ERROR "${receiver} names no libraries")
+    endif()
+  else()
+    set(candidates ${receiver})
+  endif()
+
+  set(${result})
+
+  foreach(candidate IN LISTS candidates)
+    get_target_property(aliased ${candidate} ALIASED_TARGET)
+
+    if(aliased)
+      list(APPEND ${result} ${aliased})
+    else()
+      list(APPEND ${result} ${candidate})
+    endif()
+  endforeach()
+
+  return(PROPAGATE ${result})
 endfunction()
 
 function(link_bare_modules receiver)
@@ -810,6 +913,7 @@ function(link_bare_modules receiver)
   )
 
   set(one_value_keywords
+    FROM
     WORKING_DIRECTORY
   )
 
@@ -831,6 +935,25 @@ function(link_bare_modules receiver)
     set(SHARED SHARED)
   else()
     set(SHARED)
+  endif()
+
+  if(ARGV_FROM)
+    read_bare_module_list("${ARGV_FROM}" names)
+
+    foreach(name ${names})
+      if("${name}" IN_LIST ARGV_EXCLUDE)
+        continue()
+      endif()
+
+      link_bare_module(
+        ${receiver}
+        ${name}
+        ${SHARED}
+        WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
+      )
+    endforeach()
+
+    return()
   endif()
 
   list_node_modules(
@@ -860,4 +983,93 @@ function(link_bare_modules receiver)
       )
     endif()
   endforeach()
+endfunction()
+
+# Read a JSON list of module specifiers, such as the builtins list of Bare, and
+# write the names of the native addons that it selects for the target host to
+# the `<result>` variable. Entries may be conditional, using the same syntax as
+# the "exports" and "imports" fields of `package.json`, and only those that are
+# matched through the "addon" condition are native addons.
+function(read_bare_module_list path result)
+  cmake_path(ABSOLUTE_PATH path BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)
+
+  file(READ "${path}" json)
+
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${path}")
+
+  bare_target(host)
+
+  string(REPLACE "-" ";" conditions "${host}")
+
+  list(APPEND conditions addon)
+
+  string(JSON type TYPE "${json}")
+
+  if(NOT type STREQUAL "ARRAY")
+    message(FATAL_ERROR "Module list '${path}' must contain a JSON array")
+  endif()
+
+  bare_module_list_targets("${json}" "${conditions}" OFF targets)
+
+  set(${result})
+
+  foreach(target ${targets})
+    string(REGEX REPLACE "^(@?[^@]+)@.*$" "\\1" name "${target}")
+
+    list(APPEND ${result} ${name})
+  endforeach()
+
+  list(REMOVE_DUPLICATES ${result})
+
+  return(PROPAGATE ${result})
+endfunction()
+
+function(bare_module_list_targets json conditions addon result)
+  set(found)
+
+  string(JSON type TYPE "${json}")
+
+  string(JSON length LENGTH "${json}")
+
+  if(length GREATER 0)
+    math(EXPR last "${length} - 1")
+
+    foreach(i RANGE ${last})
+      if(type STREQUAL "OBJECT")
+        string(JSON key MEMBER "${json}" ${i})
+
+        if(NOT key STREQUAL "default" AND NOT key IN_LIST conditions)
+          continue()
+        endif()
+
+        if(key STREQUAL "addon")
+          set(addon ON)
+        endif()
+      else()
+        set(key ${i})
+      endif()
+
+      string(JSON value_type TYPE "${json}" ${key})
+      string(JSON value GET "${json}" ${key})
+
+      if(value_type STREQUAL "STRING")
+        if(addon)
+          list(APPEND found ${value})
+        endif()
+      elseif(value_type STREQUAL "ARRAY" OR value_type STREQUAL "OBJECT")
+        bare_module_list_targets("${value}" "${conditions}" ${addon} nested)
+
+        list(APPEND found ${nested})
+      endif()
+
+      # Only the first matching condition of an object applies.
+      if(type STREQUAL "OBJECT")
+        break()
+      endif()
+    endforeach()
+  endif()
+
+  set(${result} ${found})
+
+  return(PROPAGATE ${result})
 endfunction()

@@ -36,9 +36,13 @@ Write the current compilation target to the `<result>` variable. Pass the `HOST`
 
 Determine the CMake library target name of the module in `<directory>` and write the result to the `<result>` variable. The `NAME`, `VERSION`, and `HASH` arguments can be passed to access specific portions of the target name which will be of the format `${name}-${version}-${hash}`.
 
-#### `add_bare_module(<result> [EXPORTS] [NAME <name>] [INSTALL OFF | INSTALL [TARGET <target>]...])`
+#### `add_bare_module(<result> [SOURCES <files>...] [LINK <libraries>...] [EXPORTS] [NAME <name>] [INSTALL OFF | INSTALL [TARGET <target> | FILE <path> | DIR <path> | PRIVACY_MANIFEST <path>]...])`
 
 Add a Bare native addon target and write the target name to the `<result>` variable. Pass `INSTALL OFF` to add no install rules for the native addon, such as when it's only used by tests.
+
+`SOURCES` are compiled into the native addon, like those added with `target_sources(<result> PRIVATE ...)`. `LINK` lists the libraries it links. Entries of the form `<package>::<TYPE>` link `<package>::static`, as created by `add_library_targets()` from `cmake-prelude`, so that the native addon is self-contained, both as a shared library and when linked into another target.
+
+To ship other files with the native addon, pass them to `INSTALL`. They're installed into a `<name>` directory next to the native addon. `TARGET` installs the file built by a target, such as a shared library the native addon links. `FILE` installs a single file. `DIR` installs a directory the same way as `install(DIRECTORY)`, so a trailing slash installs only its contents. `PRIVACY_MANIFEST` installs an Apple privacy manifest as `PrivacyInfo.xcprivacy`, but only for Apple targets. WebAssembly addons accept `FILE` and `DIR`, but not `TARGET`.
 
 #### `include_bare_module(<specifier> <result> [PREBUILD] [SOURCE_DIR <var>] [BINARY_DIR <var>] [WORKING_DIRECTORY <path>])`
 
@@ -50,11 +54,19 @@ To change the working directory from which `<specifier>` is resolved, pass the `
 
 Link the Bare native addon identified by `<specifier>` to the library target identified by `<receiver>`. By default, the objects of the native addon will be linked, effectively embedding the addon in `<receiver>`. To instead link the shared library target of the native addon, such as when `<receiver>` is itself another native addon, pass the `SHARED` option.
 
+`<receiver>` may be an alias. A receiver of the form `<name>::<TYPE>` links each of the `<name>::static` and `<name>::shared` libraries that exist, as created by `add_library_targets()` from `cmake-prelude`.
+
 To change the working directory from which `<specifier>` is resolved, pass the `WORKING_DIRECTORY` argument.
 
-#### `link_bare_modules(<receiver> [SHARED] [EXCLUDE <name...>] [WORKING_DIRECTORY <path>])`
+#### `link_bare_modules(<receiver> [SHARED] [FROM <path>] [EXCLUDE <name...>] [WORKING_DIRECTORY <path>])`
 
-Link all Bare native addons declared as dependencies in the `package.json` manifest of the current source directory to the library target identified by `<receiver>`. Arguments are the same of for `link_bare_module()`.
+Link all Bare native addons declared as dependencies in the `package.json` manifest of the current source directory to the library target identified by `<receiver>`. Arguments are the same of for `link_bare_module()`. To skip some of the native addons, pass their package names with `EXCLUDE`.
+
+To instead link the native addons from a list of builtins, pass `FROM` with the path to a JSON file holding an array of module specifiers. Entries may use conditions, with the same syntax as the `"exports"` and `"imports"` fields of `package.json`. The conditions are the platform, architecture, and environment of the target, such as `"darwin"` and `"arm64"`, and `"addon"`. Only the entries matched through the `"addon"` condition are linked:
+
+```json
+[{ "addon": "bare-buffer" }, { "linux": { "addon": "bare-linux-only" } }, "bare-javascript-only"]
+```
 
 #### `link_bare_headers(<target>)`
 

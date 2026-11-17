@@ -8,7 +8,7 @@ const modules = path.resolve(__dirname, '..', 'node_modules')
 const isBare = typeof Bare !== 'undefined'
 
 exports.build = function build(fixture, opts = {}) {
-  const { install = true } = opts
+  const { install = true, files = () => ({}) } = opts
 
   test(fixture, { timeout: 300000 }, async (t) => {
     const cwd = path.resolve(__dirname, '..', fixture)
@@ -26,9 +26,24 @@ exports.build = function build(fixture, opts = {}) {
 
     await make.install({ cwd, build: 'build', prefix: 'prebuilds', stdio: 'inherit' })
 
+    const prebuilds = path.join(cwd, 'prebuilds')
+
     if (!install) {
-      t.absent(fs.existsSync(path.join(cwd, 'prebuilds')), 'installs nothing')
-    } else if (isBare) {
+      t.absent(fs.existsSync(prebuilds), 'installs nothing')
+      return
+    }
+
+    for (const host of fs.readdirSync(prebuilds)) {
+      for (const [file, expected] of Object.entries(files(host))) {
+        t.is(
+          fs.existsSync(path.join(prebuilds, host, file)),
+          expected,
+          `${expected ? 'installs' : 'skips'} ${file}`
+        )
+      }
+    }
+
+    if (isBare) {
       t.ok(require(path.join(cwd, 'index.js')), 'loads')
     } else {
       t.pass('built')

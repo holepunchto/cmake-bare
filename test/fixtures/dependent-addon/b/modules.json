@@ -1,0 +1,6 @@
+[
+  "not-an-addon",
+  { "addon": "a@1.2.3" },
+  { "freertos": { "addon": "not-for-this-platform" } },
+  { "addon": "excluded" }
+]

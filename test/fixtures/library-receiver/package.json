@@ -1,0 +1,16 @@
+{
+  "name": "library-receiver",
+  "version": "1.2.3",
+  "addon": true,
+  "files": [
+    "index.js",
+    "prebuilds"
+  ],
+  "dependencies": {
+    "a": "file:../dependent-addon/a"
+  },
+  "devDependencies": {
+    "cmake-bare": "file:../../..",
+    "cmake-npm": "^1.0.4"
+  }
+}
