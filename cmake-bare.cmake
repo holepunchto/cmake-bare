@@ -343,23 +343,42 @@ function(bare_module_target directory result)
 endfunction()
 
 function(add_bare_module result)
-  set(option_keywords
-    EXPORTS
-  )
-
   set(single_value_keywords
     NAME
+    EXPORTS_FILE
   )
 
   set(multi_value_keywords
     SOURCES
     LINK
+    EXPORTS
     INSTALL
   )
 
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARGV "${option_keywords}" "${single_value_keywords}" "${multi_value_keywords}"
+    PARSE_ARGV 1 ARGV "" "${single_value_keywords}" "${multi_value_keywords}"
   )
+
+  set(symbols ${ARGV_EXPORTS})
+
+  if(ARGV_EXPORTS_FILE)
+    read_bare_module_symbols("${ARGV_EXPORTS_FILE}" file_symbols)
+
+    list(APPEND symbols ${file_symbols})
+  endif()
+
+  # A lone EXPORTS exports every symbol, while a list of symbols exports only
+  # those. Either way, other addons can link against the addon.
+  if(symbols)
+    set(exports ON)
+    set(exports_all OFF)
+  elseif("EXPORTS" IN_LIST ARGV_KEYWORDS_MISSING_VALUES)
+    set(exports ON)
+    set(exports_all ON)
+  else()
+    set(exports OFF)
+    set(exports_all OFF)
+  endif()
 
   bare_module_target("." target NAME name VERSION version)
 
@@ -430,12 +449,6 @@ function(add_bare_module result)
     )
 
     return(PROPAGATE ${result})
-  endif()
-
-  if(ARGV_EXPORTS)
-    set(exports ON)
-  else()
-    set(exports OFF)
   endif()
 
   add_library(${target}_module SHARED)
@@ -564,35 +577,10 @@ function(add_bare_module result)
       PRIVATE
         -Wl,-undefined,dynamic_lookup
     )
+  endif()
 
-    if(NOT APPLE AND NOT exports)
-      # On ELF platforms every default-visibility symbol is exported and subject
-      # to interposition from Bare's global scope, so a module that vendors
-      # symbols Bare also provides binds to Bare's copies instead of its own.
-      # Unless the module opts into EXPORTS, localize every defined symbol so it
-      # only ever binds to the code it ships. The registration entry points that
-      # Bare looks up when loading the addon must remain visible, so keep them
-      # global.
-      set(version_script "${CMAKE_CURRENT_BINARY_DIR}/${target}.map")
-
-      file(WRITE "${version_script}"
-        "{\n"
-        "  global:\n"
-        "    bare_get_module_name_v*;\n"
-        "    bare_register_module_v*;\n"
-        "    napi_register_module_v*;\n"
-        "\n"
-        "  local:\n"
-        "    *;\n"
-        "};\n"
-      )
-
-      target_link_options(
-        ${target}_module
-        PRIVATE
-          -Wl,--version-script=${version_script}
-      )
-    endif()
+  if(NOT exports_all)
+    restrict_bare_module_exports(${target} ${symbols})
   endif()
 
   if(NOT install)
@@ -605,7 +593,7 @@ function(add_bare_module result)
     RENAME ${name}.bare
   )
 
-  if(ARGV_EXPORTS)
+  if(exports)
     install(
       FILES $<TARGET_IMPORT_FILE:${target}_module>
       DESTINATION ${host}
@@ -669,6 +657,124 @@ function(install_bare_module_files host name)
       message(FATAL_ERROR "Unknown INSTALL type '${type}'")
     endif()
   endwhile()
+endfunction()
+
+# Read the symbols in a JSON array of strings, or in a file with one symbol per
+# line.
+function(read_bare_module_symbols path result)
+  cmake_path(ABSOLUTE_PATH path BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" NORMALIZE)
+
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${path}")
+
+  set(${result})
+
+  if(NOT path MATCHES "\\.json$")
+    file(STRINGS "${path}" ${result})
+
+    return(PROPAGATE ${result})
+  endif()
+
+  file(READ "${path}" json)
+
+  string(JSON type TYPE "${json}")
+
+  if(NOT type STREQUAL "ARRAY")
+    message(FATAL_ERROR "Exports file '${path}' must contain a JSON array")
+  endif()
+
+  string(JSON length LENGTH "${json}")
+
+  if(length GREATER 0)
+    math(EXPR last "${length} - 1")
+
+    foreach(i RANGE ${last})
+      string(JSON symbol GET "${json}" ${i})
+
+      list(APPEND ${result} ${symbol})
+    endforeach()
+  endif()
+
+  return(PROPAGATE ${result})
+endfunction()
+
+# Export only the given symbols from the shared library of the addon `target`,
+# along with the symbols that Bare looks up when loading the addon.
+#
+# Hiding symbols also matters for correctness on ELF platforms. There, every
+# exported symbol is subject to interposition from Bare's global scope, so an
+# addon that vendors symbols Bare also provides would otherwise bind to Bare's
+# copies instead of its own.
+function(restrict_bare_module_exports target)
+  set(symbols ${ARGN})
+
+  set(base "${CMAKE_CURRENT_BINARY_DIR}/${target}")
+
+  if(WIN32)
+    # The Bare headers declare the loader symbols with `__declspec(dllexport)`,
+    # so only the given symbols need listing.
+    set_target_properties(
+      ${target}_module
+      PROPERTIES
+      WINDOWS_EXPORT_ALL_SYMBOLS OFF
+    )
+
+    if(NOT symbols)
+      return()
+    endif()
+
+    set(exports_file "${base}.def")
+
+    list(TRANSFORM symbols PREPEND "  ")
+    list(JOIN symbols "\n" symbols)
+
+    file(CONFIGURE OUTPUT "${exports_file}" CONTENT "EXPORTS\n${symbols}\n" @ONLY)
+
+    target_link_options(
+      ${target}_module
+      PRIVATE
+        "/DEF:${exports_file}"
+    )
+  else()
+    list(APPEND symbols
+      bare_get_module_name_v*
+      bare_register_module_v*
+      napi_register_module_v*
+    )
+
+    if(APPLE)
+      set(exports_file "${base}.exp")
+
+      list(TRANSFORM symbols PREPEND "_")
+      list(JOIN symbols "\n" symbols)
+
+      file(CONFIGURE OUTPUT "${exports_file}" CONTENT "${symbols}\n" @ONLY)
+
+      target_link_options(
+        ${target}_module
+        PRIVATE
+          "-Wl,-exported_symbols_list,${exports_file}"
+      )
+    else()
+      set(exports_file "${base}.map")
+
+      list(TRANSFORM symbols PREPEND "    ")
+      list(JOIN symbols ";\n" symbols)
+
+      file(CONFIGURE OUTPUT "${exports_file}" CONTENT "{\n  global:\n${symbols};\n\n  local:\n    *;\n};\n" @ONLY)
+
+      target_link_options(
+        ${target}_module
+        PRIVATE
+          "-Wl,--version-script=${exports_file}"
+      )
+    endif()
+  endif()
+
+  set_property(
+    TARGET ${target}_module
+    APPEND
+    PROPERTY LINK_DEPENDS "${exports_file}"
+  )
 endfunction()
 
 # A WebAssembly addon is a reactor module rather than a shared library.

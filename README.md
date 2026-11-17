@@ -36,13 +36,21 @@ Write the current compilation target to the `<result>` variable. Pass the `HOST`
 
 Determine the CMake library target name of the module in `<directory>` and write the result to the `<result>` variable. The `NAME`, `VERSION`, and `HASH` arguments can be passed to access specific portions of the target name which will be of the format `${name}-${version}-${hash}`.
 
-#### `add_bare_module(<result> [SOURCES <files>...] [LINK <libraries>...] [EXPORTS] [NAME <name>] [INSTALL OFF | INSTALL [TARGET <target> | FILE <path> | DIR <path> | PRIVACY_MANIFEST <path>]...])`
+#### `add_bare_module(<result> [SOURCES <files>...] [LINK <libraries>...] [EXPORTS [<symbols>...]] [EXPORTS_FILE <path>] [NAME <name>] [INSTALL OFF | INSTALL [TARGET <target> | FILE <path> | DIR <path> | PRIVACY_MANIFEST <path>]...])`
 
 Add a Bare native addon target and write the target name to the `<result>` variable. Pass `INSTALL OFF` to add no install rules for the native addon, such as when it's only used by tests.
 
 `SOURCES` are compiled into the native addon, like those added with `target_sources(<result> PRIVATE ...)`. `LINK` lists the libraries it links. Entries of the form `<package>::<TYPE>` link `<package>::static`, as created by `add_library_targets()` from `cmake-prelude`, so that the native addon is self-contained, both as a shared library and when linked into another target.
 
 To ship other files with the native addon, pass them to `INSTALL`. They're installed into a `<name>` directory next to the native addon. `TARGET` installs the file built by a target, such as a shared library the native addon links. `FILE` installs a single file. `DIR` installs a directory the same way as `install(DIRECTORY)`, so a trailing slash installs only its contents. `PRIVACY_MANIFEST` installs an Apple privacy manifest as `PrivacyInfo.xcprivacy`, but only for Apple targets. WebAssembly addons accept `FILE` and `DIR`, but not `TARGET`.
+
+By default, the native addon exports only the symbols that Bare needs to load it. To let other native addons link against it, list the symbols to export with `EXPORTS`, or with `EXPORTS_FILE`, which takes a JSON array of strings or a file with one symbol per line:
+
+```json
+["addon_fn", "addon_other_fn"]
+```
+
+A lone `EXPORTS`, without any symbols, exports all symbols of the native addon instead.
 
 #### `include_bare_module(<specifier> <result> [PREBUILD] [SOURCE_DIR <var>] [BINARY_DIR <var>] [WORKING_DIRECTORY <path>])`
 
