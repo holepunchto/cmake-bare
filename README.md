@@ -58,7 +58,7 @@ Link the Bare native addon identified by `<specifier>` to the library target ide
 
 To change the working directory from which `<specifier>` is resolved, pass the `WORKING_DIRECTORY` argument.
 
-#### `link_bare_modules(<receiver> [SHARED] [FROM <path>] [EXCLUDE <name...>] [WORKING_DIRECTORY <path>])`
+#### `link_bare_modules(<receiver> [SHARED] [FROM <path>] [EXCLUDE <name...>] [EXCLUDE_FROM <path>] [WORKING_DIRECTORY <path>])`
 
 Link all Bare native addons declared as dependencies in the `package.json` manifest of the current source directory to the library target identified by `<receiver>`. Arguments are the same of for `link_bare_module()`. To skip some of the native addons, pass their package names with `EXCLUDE`.
 
@@ -67,6 +67,8 @@ To instead link the native addons from a list of builtins, pass `FROM` with the 
 ```json
 [{ "addon": "bare-buffer" }, { "linux": { "addon": "bare-linux-only" } }, "bare-javascript-only"]
 ```
+
+To skip the native addons of another such list, such as those already linked into a library that `<receiver>` links, pass `EXCLUDE_FROM` with its path.
 
 #### `link_bare_headers(<target>)`
 

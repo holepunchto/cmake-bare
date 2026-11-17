@@ -914,6 +914,7 @@ function(link_bare_modules receiver)
 
   set(one_value_keywords
     FROM
+    EXCLUDE_FROM
     WORKING_DIRECTORY
   )
 
@@ -924,6 +925,12 @@ function(link_bare_modules receiver)
   cmake_parse_arguments(
     PARSE_ARGV 1 ARGV "${option_keywords}" "${one_value_keywords}" "${multi_value_keywords}"
   )
+
+  if(ARGV_EXCLUDE_FROM)
+    read_bare_module_list("${ARGV_EXCLUDE_FROM}" excluded)
+
+    list(APPEND ARGV_EXCLUDE ${excluded})
+  endif()
 
   if(ARGV_WORKING_DIRECTORY)
     cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)

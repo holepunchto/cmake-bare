@@ -12,4 +12,4 @@ target_sources(
     binding.c
 )
 
-link_bare_modules(${addon_b} SHARED FROM modules.json EXCLUDE excluded)
+link_bare_modules(${addon_b} SHARED FROM modules.json EXCLUDE excluded EXCLUDE_FROM excluded.json)
