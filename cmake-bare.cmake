@@ -1048,6 +1048,8 @@ function(link_bare_modules receiver)
     endif()
   endif()
 
+  list(TRANSFORM excluded_modules REPLACE "@.*$" "" OUTPUT_VARIABLE excluded_names)
+
   if(ARGV_WORKING_DIRECTORY)
     cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)
   else()
@@ -1079,6 +1081,8 @@ function(link_bare_modules receiver)
 
         if("${module_name}@${module_version}" IN_LIST excluded_modules)
           continue()
+        elseif("${module_name}" IN_LIST excluded_names)
+          message(WARNING "Linking ${module_name}@${module_version} although another version is linked into ${ARGV_EXCLUDE_FROM}")
         endif()
       endif()
 
@@ -1113,6 +1117,8 @@ function(link_bare_modules receiver)
 
     if("${module_name}@${module_version}" IN_LIST excluded_modules)
       continue()
+    elseif("${module_name}" IN_LIST excluded_names)
+      message(WARNING "Linking ${module_name}@${module_version} although another version is linked into ${ARGV_EXCLUDE_FROM}")
     endif()
 
     string(JSON addon ERROR_VARIABLE error GET "${package}" "addon")
