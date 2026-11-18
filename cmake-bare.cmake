@@ -346,6 +346,7 @@ function(add_bare_module result)
   set(single_value_keywords
     NAME
     EXPORTS_FROM
+    STRIP
   )
 
   set(multi_value_keywords
@@ -378,6 +379,14 @@ function(add_bare_module result)
   else()
     set(exports OFF)
     set(exports_all OFF)
+  endif()
+
+  if(NOT DEFINED ARGV_STRIP)
+    if(exports_all)
+      set(ARGV_STRIP OFF)
+    else()
+      set(ARGV_STRIP ON)
+    endif()
   endif()
 
   bare_module_target("." target NAME name VERSION version)
@@ -573,6 +582,8 @@ function(add_bare_module result)
     restrict_bare_module_exports(${target} ${symbols})
   endif()
 
+  strip_bare_module(${target} ${ARGV_STRIP})
+
   if(NOT install)
     return(PROPAGATE ${result})
   endif()
@@ -594,6 +605,34 @@ function(add_bare_module result)
   install_bare_module_files(${host} ${name} ${ARGV_INSTALL})
 
   return(PROPAGATE ${result})
+endfunction()
+
+# Release builds remove the code that no exported symbol reaches and, if `strip`
+# is on, the symbols that aren't exported.
+function(strip_bare_module target strip)
+  if(APPLE)
+    set(options -dead_strip)
+
+    if(strip)
+      list(APPEND options -S -x)
+    endif()
+  elseif(NOT WIN32)
+    set(options --gc-sections)
+
+    if(strip)
+      list(APPEND options --strip-all)
+    endif()
+  else()
+    return()
+  endif()
+
+  list(JOIN options "," options)
+
+  target_link_options(
+    ${target}_module
+    PRIVATE
+      $<$<CONFIG:Release,MinSizeRel>:-Wl,${options}>
+  )
 endfunction()
 
 function(install_bare_module_files host name)
@@ -731,6 +770,7 @@ function(restrict_bare_module_exports target)
       napi_register_module_v*
     )
 
+    # `-Xlinker` passes the path on as is, where `-Wl,` would split it at commas.
     if(APPLE)
       set(exports_file "${base}.exp")
 
@@ -742,7 +782,7 @@ function(restrict_bare_module_exports target)
       target_link_options(
         ${target}_module
         PRIVATE
-          "-Wl,-exported_symbols_list,${exports_file}"
+          "SHELL:-Xlinker -exported_symbols_list -Xlinker \"${exports_file}\""
       )
     else()
       set(exports_file "${base}.map")
@@ -755,7 +795,7 @@ function(restrict_bare_module_exports target)
       target_link_options(
         ${target}_module
         PRIVATE
-          "-Wl,--version-script=${exports_file}"
+          "SHELL:-Xlinker \"--version-script=${exports_file}\""
       )
     endif()
   endif()

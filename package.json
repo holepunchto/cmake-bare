@@ -42,7 +42,7 @@
   },
   "devDependencies": {
     "bare-fs": "^4.4.4",
-    "bare-make": "^1.8.0",
+    "bare-make": "^2.1.2",
     "bare-path": "^3.0.0",
     "brittle": "^3.7.0",
     "lunte": "^1.8.0",

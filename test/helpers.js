@@ -8,7 +8,7 @@ const modules = path.resolve(__dirname, '..', 'node_modules')
 const isBare = typeof Bare !== 'undefined'
 
 exports.build = function build(fixture, opts = {}) {
-  const { install = true, files = () => ({}) } = opts
+  const { install = true, files = () => ({}), binary, contains = () => ({}) } = opts
 
   test(fixture, { timeout: 300000 }, async (t) => {
     const cwd = path.resolve(__dirname, '..', fixture)
@@ -40,6 +40,16 @@ exports.build = function build(fixture, opts = {}) {
           expected,
           `${expected ? 'installs' : 'skips'} ${file}`
         )
+      }
+
+      const texts = Object.entries(contains(host))
+
+      if (texts.length === 0) continue
+
+      const data = fs.readFileSync(path.join(prebuilds, host, binary))
+
+      for (const [text, expected] of texts) {
+        t.is(data.includes(text), expected, `${expected ? 'keeps' : 'removes'} ${text}`)
       }
     }
 
