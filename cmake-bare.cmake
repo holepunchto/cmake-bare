@@ -923,6 +923,16 @@ function(link_bare_module receiver specifier)
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
+  file(READ "${source_dir}/package.json" package)
+
+  string(JSON package_name GET "${package}" "name")
+
+  # Record the native addon on the receivers, so that others can skip the native
+  # addons they already link with `link_bare_modules(EXCLUDE_FROM <target>)`.
+  foreach(receiver IN LISTS receivers)
+    set_property(TARGET ${receiver} APPEND PROPERTY BARE_MODULES "${package_name}")
+  endforeach()
+
   if(ARGV_SHARED)
     foreach(receiver IN LISTS receivers)
       target_link_libraries(
@@ -1023,9 +1033,21 @@ function(link_bare_modules receiver)
   )
 
   if(ARGV_EXCLUDE_FROM)
-    read_bare_module_list("${ARGV_EXCLUDE_FROM}" excluded)
+    if(TARGET ${ARGV_EXCLUDE_FROM} OR ARGV_EXCLUDE_FROM MATCHES "::<TYPE>$")
+      resolve_bare_module_receivers(${ARGV_EXCLUDE_FROM} targets)
 
-    list(APPEND ARGV_EXCLUDE ${excluded})
+      foreach(target IN LISTS targets)
+        get_target_property(excluded ${target} BARE_MODULES)
+
+        if(excluded)
+          list(APPEND ARGV_EXCLUDE ${excluded})
+        endif()
+      endforeach()
+    else()
+      read_bare_module_list("${ARGV_EXCLUDE_FROM}" excluded)
+
+      list(APPEND ARGV_EXCLUDE ${excluded})
+    endif()
   endif()
 
   if(ARGV_WORKING_DIRECTORY)
@@ -1044,7 +1066,10 @@ function(link_bare_modules receiver)
     read_bare_module_list("${ARGV_FROM}" names)
 
     foreach(name ${names})
-      if("${name}" IN_LIST ARGV_EXCLUDE)
+      # Specifiers may name a version, which exclusions by package name ignore.
+      string(REGEX REPLACE "^(@?[^@]+)@.*$" "\\1" package_name "${name}")
+
+      if("${name}" IN_LIST ARGV_EXCLUDE OR "${package_name}" IN_LIST ARGV_EXCLUDE)
         continue()
       endif()
 

@@ -39,3 +39,21 @@ target_sources(
 )
 
 link_bare_module(host::<TYPE> a)
+
+add_library(other_static STATIC)
+
+add_library(other::static ALIAS other_static)
+
+target_sources(
+  other_static
+  PRIVATE
+    host.c
+)
+
+link_bare_modules(other::<TYPE> FROM modules.json EXCLUDE_FROM host::<TYPE>)
+
+get_target_property(modules other_static BARE_MODULES)
+
+if(modules)
+  message(FATAL_ERROR "Linked ${modules} despite being linked into host::static")
+endif()
