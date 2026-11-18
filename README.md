@@ -66,7 +66,7 @@ Link the Bare native addon identified by `<specifier>` to the library target ide
 
 To change the working directory from which `<specifier>` is resolved, pass the `WORKING_DIRECTORY` argument.
 
-The package name of the native addon is appended to the `BARE_MODULES` property of each library it's linked to.
+The `<name>@<version>` that the native addon registers under is appended to the `BARE_MODULES` property of each library it's linked to. Scoped package names have their `/` replaced by `__` and their leading `@` dropped, so `@scope/addon` becomes `scope__addon`.
 
 #### `link_bare_modules(<receiver> [SHARED] [FROM <path>] [EXCLUDE <name...>] [EXCLUDE_FROM <path> | <target>] [WORKING_DIRECTORY <path>])`
 
@@ -78,7 +78,7 @@ To instead link the native addons from a list of builtins, pass `FROM` with the 
 [{ "addon": "bare-buffer" }, { "linux": { "addon": "bare-linux-only" } }, "bare-javascript-only"]
 ```
 
-To skip the native addons already linked into a library that `<receiver>` links, pass `EXCLUDE_FROM` with that library, which may be an alias or of the form `<name>::<TYPE>`. The native addons recorded in its `BARE_MODULES` property are then skipped. `EXCLUDE_FROM` also accepts the path of another list of builtins, whose native addons are skipped instead. Exclusions match package names, so a specifier such as `bare-fs@4` is skipped by excluding `bare-fs`.
+To skip the native addons already linked into a library that `<receiver>` links, pass `EXCLUDE_FROM` with that library, which may be an alias or of the form `<name>::<TYPE>`. A native addon is then skipped only if the same version is recorded in its `BARE_MODULES` property, so that a different version of the native addon is still linked. `EXCLUDE_FROM` also accepts the path of another list of builtins, whose native addons are skipped by package name regardless of version.
 
 #### `link_bare_headers(<target>)`
 

@@ -923,14 +923,12 @@ function(link_bare_module receiver specifier)
     WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
   )
 
-  file(READ "${source_dir}/package.json" package)
-
-  string(JSON package_name GET "${package}" "name")
+  bare_module_target("${source_dir}" target NAME name VERSION version HASH hash)
 
   # Record the native addon on the receivers, so that others can skip the native
   # addons they already link with `link_bare_modules(EXCLUDE_FROM <target>)`.
   foreach(receiver IN LISTS receivers)
-    set_property(TARGET ${receiver} APPEND PROPERTY BARE_MODULES "${package_name}")
+    set_property(TARGET ${receiver} APPEND PROPERTY BARE_MODULES "${name}@${version}")
   endforeach()
 
   if(ARGV_SHARED)
@@ -942,8 +940,6 @@ function(link_bare_module receiver specifier)
       )
     endforeach()
   else()
-    bare_module_target("${source_dir}" target NAME name VERSION version HASH hash)
-
     target_compile_definitions(
       ${target}
       PRIVATE
@@ -1032,6 +1028,8 @@ function(link_bare_modules receiver)
     PARSE_ARGV 1 ARGV "${option_keywords}" "${one_value_keywords}" "${multi_value_keywords}"
   )
 
+  set(excluded_modules)
+
   if(ARGV_EXCLUDE_FROM)
     if(TARGET ${ARGV_EXCLUDE_FROM} OR ARGV_EXCLUDE_FROM MATCHES "::<TYPE>$")
       resolve_bare_module_receivers(${ARGV_EXCLUDE_FROM} targets)
@@ -1040,7 +1038,7 @@ function(link_bare_modules receiver)
         get_target_property(excluded ${target} BARE_MODULES)
 
         if(excluded)
-          list(APPEND ARGV_EXCLUDE ${excluded})
+          list(APPEND excluded_modules ${excluded})
         endif()
       endforeach()
     else()
@@ -1049,6 +1047,8 @@ function(link_bare_modules receiver)
       list(APPEND ARGV_EXCLUDE ${excluded})
     endif()
   endif()
+
+  list(TRANSFORM excluded_modules REPLACE "@.*$" "" OUTPUT_VARIABLE excluded_names)
 
   if(ARGV_WORKING_DIRECTORY)
     cmake_path(ABSOLUTE_PATH ARGV_WORKING_DIRECTORY BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" NORMALIZE)
@@ -1066,11 +1066,24 @@ function(link_bare_modules receiver)
     read_bare_module_list("${ARGV_FROM}" names)
 
     foreach(name ${names})
-      # Specifiers may name a version, which exclusions by package name ignore.
-      string(REGEX REPLACE "^(@?[^@]+)@.*$" "\\1" package_name "${name}")
-
-      if("${name}" IN_LIST ARGV_EXCLUDE OR "${package_name}" IN_LIST ARGV_EXCLUDE)
+      if("${name}" IN_LIST ARGV_EXCLUDE)
         continue()
+      endif()
+
+      resolve_node_module(
+        ${name}
+        source_dir
+        WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
+      )
+
+      if(NOT source_dir MATCHES "NOTFOUND")
+        bare_module_target("${source_dir}" target NAME module_name VERSION module_version)
+
+        if("${module_name}@${module_version}" IN_LIST excluded_modules)
+          continue()
+        elseif("${module_name}" IN_LIST excluded_names)
+          message(WARNING "Linking ${module_name}@${module_version} although another version is linked into ${ARGV_EXCLUDE_FROM}")
+        endif()
       endif()
 
       link_bare_module(
@@ -1098,6 +1111,14 @@ function(link_bare_modules receiver)
 
     if("${name}" IN_LIST ARGV_EXCLUDE)
       continue()
+    endif()
+
+    bare_module_target("${base}" target NAME module_name VERSION module_version)
+
+    if("${module_name}@${module_version}" IN_LIST excluded_modules)
+      continue()
+    elseif("${module_name}" IN_LIST excluded_names)
+      message(WARNING "Linking ${module_name}@${module_version} although another version is linked into ${ARGV_EXCLUDE_FROM}")
     endif()
 
     string(JSON addon ERROR_VARIABLE error GET "${package}" "addon")

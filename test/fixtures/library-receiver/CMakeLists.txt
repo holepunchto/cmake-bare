@@ -57,3 +57,33 @@ get_target_property(modules other_static BARE_MODULES)
 if(modules)
   message(FATAL_ERROR "Linked ${modules} despite being linked into host::static")
 endif()
+
+add_library(stale_static STATIC)
+
+add_library(stale::static ALIAS stale_static)
+
+target_sources(
+  stale_static
+  PRIVATE
+    host.c
+)
+
+set_property(TARGET stale_static PROPERTY BARE_MODULES "a@1.0.0")
+
+add_library(newer_static STATIC)
+
+add_library(newer::static ALIAS newer_static)
+
+target_sources(
+  newer_static
+  PRIVATE
+    host.c
+)
+
+link_bare_modules(newer::<TYPE> FROM modules.json EXCLUDE_FROM stale::<TYPE>)
+
+get_target_property(modules newer_static BARE_MODULES)
+
+if(NOT modules STREQUAL "a@1.2.3")
+  message(FATAL_ERROR "Skipped a@1.2.3 despite only a@1.0.0 being linked into stale::static")
+endif()
