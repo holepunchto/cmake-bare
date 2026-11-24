@@ -347,6 +347,7 @@ function(add_bare_module result)
     NAME
     EXPORTS_FROM
     STRIP
+    CXX_RUNTIME
   )
 
   set(multi_value_keywords
@@ -404,6 +405,17 @@ function(add_bare_module result)
 
   string(REGEX MATCH "^[0-9]+" major "${version}")
 
+  bare_target(host)
+
+  # FreeRTOS targets often lack a C++ runtime, so addons go without it by default.
+  if(NOT DEFINED ARGV_CXX_RUNTIME)
+    if(host MATCHES "^freertos-")
+      set(ARGV_CXX_RUNTIME OFF)
+    else()
+      set(ARGV_CXX_RUNTIME ON)
+    endif()
+  endif()
+
   add_library(${target} OBJECT)
 
   set_target_properties(
@@ -440,10 +452,16 @@ function(add_bare_module result)
 
   set(${result} ${target})
 
-  bare_target(host)
+  if(NOT ARGV_CXX_RUNTIME)
+    disable_bare_module_cxx_runtime(${target})
+  endif()
 
   if(host MATCHES "^wasi-")
     add_bare_wasm_module(${target} ${name} ${major} ${host} ${install} ${ARGV_INSTALL})
+
+    if(NOT ARGV_CXX_RUNTIME)
+      unlink_bare_module_cxx_runtime(${target})
+    endif()
 
     return(PROPAGATE ${result})
   endif()
@@ -584,6 +602,10 @@ function(add_bare_module result)
 
   strip_bare_module(${target} ${ARGV_STRIP})
 
+  if(NOT ARGV_CXX_RUNTIME)
+    unlink_bare_module_cxx_runtime(${target})
+  endif()
+
   if(NOT install)
     return(PROPAGATE ${result})
   endif()
@@ -605,6 +627,43 @@ function(add_bare_module result)
   install_bare_module_files(${host} ${name} ${ARGV_INSTALL})
 
   return(PROPAGATE ${result})
+endfunction()
+
+# Compile the C++ sources of the addon without the C++ standard library headers,
+# exceptions, RTTI, and thread-safe statics, all of which need the C++ runtime.
+function(disable_bare_module_cxx_runtime target)
+  if(MSVC)
+    set(options /EHs-c- /GR- /Zc:threadSafeInit- /D_HAS_EXCEPTIONS=0)
+  else()
+    set(options -nostdinc++ -fno-exceptions -fno-rtti -fno-threadsafe-statics)
+  endif()
+
+  target_compile_options(
+    ${target}
+    PRIVATE
+      $<$<COMPILE_LANGUAGE:CXX>:${options}>
+  )
+endfunction()
+
+# Only the addon itself is linked without the C++ runtime, as the object library
+# may also be linked into a target that needs it.
+function(unlink_bare_module_cxx_runtime target)
+  if(MSVC)
+    set(options
+      /NODEFAULTLIB:msvcprt.lib
+      /NODEFAULTLIB:msvcprtd.lib
+      /NODEFAULTLIB:libcpmt.lib
+      /NODEFAULTLIB:libcpmtd.lib
+    )
+  else()
+    set(options -nostdlib++)
+  endif()
+
+  target_link_options(
+    ${target}_module
+    PRIVATE
+      ${options}
+  )
 endfunction()
 
 # Release builds remove the code that no exported symbol reaches and, if `strip`
