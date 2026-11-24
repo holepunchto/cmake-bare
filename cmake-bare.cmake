@@ -1175,7 +1175,16 @@ function(link_bare_modules receiver)
         WORKING_DIRECTORY "${ARGV_WORKING_DIRECTORY}"
       )
 
-      if(NOT source_dir MATCHES "NOTFOUND")
+      if(source_dir MATCHES "NOTFOUND")
+        # The native addon may only be installed as a dependency of the library
+        # that already links it, so fall back to skipping it by name.
+        string(REGEX REPLACE "/" "__" module_name ${name})
+        string(REGEX REPLACE "^@" "" module_name ${module_name})
+
+        if("${module_name}" IN_LIST excluded_names)
+          continue()
+        endif()
+      else()
         bare_module_target("${source_dir}" target NAME module_name VERSION module_version)
 
         if("${module_name}@${module_version}" IN_LIST excluded_modules)

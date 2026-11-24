@@ -87,3 +87,33 @@ get_target_property(modules newer_static BARE_MODULES)
 if(NOT modules STREQUAL "a@1.2.3")
   message(FATAL_ERROR "Skipped a@1.2.3 despite only a@1.0.0 being linked into stale::static")
 endif()
+
+add_library(provider_static STATIC)
+
+add_library(provider::static ALIAS provider_static)
+
+target_sources(
+  provider_static
+  PRIVATE
+    host.c
+)
+
+set_property(TARGET provider_static PROPERTY BARE_MODULES "a@1.2.3" "missing@1.0.0")
+
+add_library(consumer_static STATIC)
+
+add_library(consumer::static ALIAS consumer_static)
+
+target_sources(
+  consumer_static
+  PRIVATE
+    host.c
+)
+
+link_bare_modules(consumer::<TYPE> FROM missing-modules.json EXCLUDE_FROM provider::<TYPE>)
+
+get_target_property(modules consumer_static BARE_MODULES)
+
+if(modules)
+  message(FATAL_ERROR "Linked ${modules} despite being linked into provider::static")
+endif()
