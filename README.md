@@ -36,7 +36,7 @@ Write the current compilation target to the `<result>` variable. Pass the `HOST`
 
 Determine the CMake library target name of the module in `<directory>` and write the result to the `<result>` variable. The `NAME`, `VERSION`, and `HASH` arguments can be passed to access specific portions of the target name which will be of the format `${name}-${version}-${hash}`.
 
-#### `add_bare_module(<result> [SOURCES <files>...] [LINK <libraries>...] [EXPORTS [<symbols>...]] [EXPORTS_FROM <path>] [NAME <name>] [STRIP <bool>] [INSTALL OFF | INSTALL [TARGET <target> | FILE <path> | DIR <path> | PRIVACY_MANIFEST <path>]...])`
+#### `add_bare_module(<result> [SOURCES <files>...] [LINK <libraries>...] [EXPORTS [<symbols>...]] [EXPORTS_FROM <path>] [NAME <name>] [STRIP <bool>] [CXX_RUNTIME <bool>] [INSTALL OFF | INSTALL [TARGET <target> | FILE <path> | DIR <path> | PRIVACY_MANIFEST <path>]...])`
 
 Add a Bare native addon target and write the target name to the `<result>` variable. Pass `INSTALL OFF` to add no install rules for the native addon, such as when it's only used by tests.
 
@@ -53,6 +53,8 @@ By default, the native addon exports only the symbols that Bare needs to load it
 A lone `EXPORTS`, without any symbols, exports all symbols of the native addon instead.
 
 Release builds of the native addon remove code that no exported symbol reaches. Unless `STRIP` is off, they also strip symbols that aren't exported. It's on by default, except with a lone `EXPORTS`. Turn it off to keep the symbols available to debuggers and crash reporters.
+
+To compile C++ sources without the C++ standard library and runtime, such as for native addons linked into Bare itself or built for platforms that have no C++ runtime, turn `CXX_RUNTIME` off. The C++ standard library headers are then unavailable, and exceptions, RTTI, and thread-safe initialization of function-local statics are disabled, as they all depend on the runtime. Statics must instead be initialized before other threads can reach them. The C standard library remains available. `CXX_RUNTIME` is on by default, except when targeting FreeRTOS.
 
 #### `include_bare_module(<specifier> <result> [PREBUILD] [SOURCE_DIR <var>] [BINARY_DIR <var>] [WORKING_DIRECTORY <path>])`
 

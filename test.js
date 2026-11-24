@@ -20,6 +20,13 @@ build('test/fixtures/strip', {
   binary: 'strip.bare',
   contains: (host) => (host.startsWith('win32-') ? {} : { strip_kept: false })
 })
+build('test/fixtures/cxx-runtime-off', {
+  binary: 'cxx-runtime-off.bare',
+  contains: (host) =>
+    host.startsWith('win32-')
+      ? {}
+      : { __cxa_guard_acquire: false, 'libc++': false, 'libstdc++': false }
+})
 build('test/fixtures/exports-all', {
   binary: 'exports-all.bare',
   contains: (host) => (host.startsWith('win32-') ? {} : { exports_all_kept: true })
