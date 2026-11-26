@@ -18,7 +18,7 @@ Write the current compilation target platform to the `<result>` variable. Pass t
 
 #### `bare_arch(<result> [HOST])`
 
-Write the current compilation target architecture to the `<result>` variable. Pass the `HOST` option to write the build host architecture instead.
+Write the current compilation target architecture to the `<result>` variable. Pass the `HOST` option to write the build host architecture instead. When `CMAKE_OSX_ARCHITECTURES` lists several architectures, the architecture is `universal`.
 
 #### `bare_simulator(<result> [HOST])`
 

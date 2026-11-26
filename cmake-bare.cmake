@@ -194,9 +194,13 @@ function(bare_arch result)
     endif()
   endif()
 
+  list(LENGTH arch length)
+
   string(TOLOWER "${arch}" arch)
 
-  if(arch MATCHES "arm64_32")
+  if(length GREATER 1)
+    set(${result} "universal")
+  elseif(arch MATCHES "arm64_32")
     set(${result} "arm64-32")
   elseif(arch MATCHES "arm64|aarch64")
     set(${result} "arm64")
@@ -829,7 +833,6 @@ function(restrict_bare_module_exports target)
       napi_register_module_v*
     )
 
-    # `-Xlinker` passes the path on as is, where `-Wl,` would split it at commas.
     if(APPLE)
       set(exports_file "${base}.exp")
 
@@ -841,7 +844,7 @@ function(restrict_bare_module_exports target)
       target_link_options(
         ${target}_module
         PRIVATE
-          "SHELL:-Xlinker -exported_symbols_list -Xlinker \"${exports_file}\""
+          "LINKER:SHELL:-exported_symbols_list \"${exports_file}\""
       )
     else()
       set(exports_file "${base}.map")
@@ -854,7 +857,7 @@ function(restrict_bare_module_exports target)
       target_link_options(
         ${target}_module
         PRIVATE
-          "SHELL:-Xlinker \"--version-script=${exports_file}\""
+          "LINKER:SHELL:\"--version-script=${exports_file}\""
       )
     endif()
   endif()
